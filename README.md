@@ -1,4 +1,4 @@
-# 👻 GhostLaunch - A Private IDO Platform
+# 👻 GhostLaunch - A Private IDO Platform using eERC
 
 GhostLaunch is a platform for conducting private Initial DEX Offerings (IDOs). It leverages the power of the Encrypted ERC (eERC) system to allow investors to contribute funds privately. Contributor amounts are hidden on-chain during the sale, and a public token claim is enabled after the sale concludes.
 
