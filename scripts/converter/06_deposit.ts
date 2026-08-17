@@ -6,7 +6,7 @@ import { getWallet, deriveKeysFromUser, getDecryptedBalance } from "../../src/ut
 
 const main = async () => {
     // Configure which wallet to use: 1 for first signer, 2 for second signer
-    const WALLET_NUMBER = 1;
+    const WALLET_NUMBER = Number(process.env.WALLET_NUMBER ?? 1);
     const depositAmountStr = "50"; // Amount to Deposit
     
     const wallet = await getWallet(WALLET_NUMBER);

@@ -73,14 +73,26 @@ Deploys the `Registrar` and `EncryptedERC` contracts.
 npx hardhat run scripts/converter/02_deploy-converter.ts --network localhost
 ```
 
+**4b. Set the Auditor**
+Required before any deposit — without it `deposit` reverts with
+`Auditor public key not set`.
+```bash
+npx hardhat run scripts/converter/04_set-auditor.ts --network localhost
+```
+
+**4c. Build and publish the ZK circuits**
+The browser fetches proving artifacts over HTTP, so they must be generated and
+copied into the frontend's `public/` directory.
+```bash
+npx hardhat zkit make && node scripts/publish-circuits.js
+```
+
 **5. Register Users**
 Each participant (the vault and all investors) must register. Update your `.env` file with the correct `PRIVATE_KEY` for each user before running.
+Pick the signer with `WALLET_NUMBER` rather than editing `.env` between runs.
 ```bash
-# Register Vault (using PRIVATE_KEY)
-npx hardhat run scripts/converter/03_register-user.ts --network localhost
-
-# Register Investor 1 (using PRIVATE_KEY2, update .env)
-npx hardhat run scripts/converter/03_register-user.ts --network localhost
+WALLET_NUMBER=1 npx hardhat run scripts/converter/03_register-user.ts --network localhost
+WALLET_NUMBER=2 npx hardhat run scripts/converter/03_register-user.ts --network localhost
 ```
 
 **6. Fund and Deposit**

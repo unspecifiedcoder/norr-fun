@@ -7,7 +7,7 @@ import { mulPointEscalar, Base8 } from "@zk-kit/baby-jubjub";
 import { formatPrivKeyForBabyJub } from "maci-crypto";
 const main = async () => {
     // Configure which wallet to use: 1 for first signer, 2 for second signer
-    const WALLET_NUMBER = 2;
+    const WALLET_NUMBER = Number(process.env.WALLET_NUMBER ?? 1);
     
     const wallet = await getWallet(WALLET_NUMBER);
     const userAddress = await wallet.getAddress();

@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Proving artifacts: ~42MB of build output, regenerated with
+#   npx hardhat zkit make && node scripts/publish-circuits.js
+public/circuits/

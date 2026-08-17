@@ -33,13 +33,31 @@ Each row of `phase2-gap-analysis.md` marked *shipped*, and where it is proven.
 | Search | — (pure client filter) | "telemetry" narrowed the feed to one raise |
 | Settings | — (local storage) | Backdrop toggle removed the canvas and persisted |
 | Chain-scoped links | — (routing) | `/local/…` opened; `/fuji/…` warned instead of misleading |
-| Private transfer (eERC) | pre-existing eERC suite | Panel renders and gates on connection; **see limitation below** |
+| Private transfer (eERC) | circom trusted setup + on-chain verifiers | Registered two users, deposited, transferred 40 units privately, recipient decrypted exactly 40 |
 
-**Limitation, stated plainly.** The eERC private-transfer path is the one
-surface not exercised end to end. It needs the circom trusted setup
-(`zkit make`) and deployed eERC contracts, which this environment has not run.
-Everything above it in the table is verified; this one is inherited from the
-original project and remains as it was found.
+**The eERC path is now verified too.** Running it end to end required the
+circom trusted setup and turned up three real defects that no amount of reading
+would have found:
+
+1. **Circuit artifacts were unreachable.** The app requests
+   `/circuits/<name>.wasm`; only `transfer` was published, and it sat at
+   `/circuits/transfer/transfer.wasm`. Because Vite serves `index.html` for
+   unmatched paths, the wrong path returned an HTML page with a **200**, so the
+   SDK failed deep inside proof generation instead of at the fetch. Confirmed by
+   byte signature: the flat path returned `3c21646f` (`<!do`) where wasm starts
+   `0061736d`. `scripts/publish-circuits.js` now publishes all five circuits to
+   the paths the app actually asks for.
+2. **Wallet selection ignored its own documentation.** Every converter script
+   carried `const WALLET_NUMBER = 1` under a comment saying it could be
+   overridden by an environment variable. It could not, so following the
+   README's "update `.env` for each user" silently kept acting as wallet 1.
+   Now genuinely env-driven.
+3. **The quick-start skipped setting the auditor**, without which `deposit`
+   reverts with `Auditor public key not set`.
+
+Verified end to end afterwards: two users registered with real Groth16 proofs,
+a deposit encrypted, 40 units transferred privately, and the recipient
+decrypting exactly 40 with EGCT and PCT totals agreeing.
 
 ---
 
