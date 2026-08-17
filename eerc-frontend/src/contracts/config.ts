@@ -1,13 +1,47 @@
 import { IDO__factory, ProjectToken__factory } from "../typechain-types";
+import localLaunch from "../deployments/launch-31337.json";
 
-// Your deployed contracts
-export const IDO_ADDRESS = "0x3e4AcD0611a27a853559dAD34b2fBb8d2EBf57d1";
-export const PROJECT_TOKEN_ADDRESS = "0x1e5ee02bfBFF110145881a50880BB671EbbDDE8A";
+export type LaunchSplit = {
+  recipient: string;
+  bps: number;
+  category: string;
+  label: string;
+};
 
-export function getIDOContract(signerOrProvider: any) {
-  return IDO__factory.connect(IDO_ADDRESS, signerOrProvider);
+export type LaunchDeployment = {
+  chainId: number;
+  deployedAt: string;
+  deployer: string;
+  contributionAsset: string;
+  projectToken: string;
+  feeRouter: string;
+  ido: string;
+  splits: LaunchSplit[];
+};
+
+/**
+ * Deployed launches keyed by chain id, written by
+ * scripts/ido/05_deploy_fee_router.ts.
+ *
+ * Addresses used to be hardcoded here and went stale the moment anything was
+ * redeployed; reading the deployment artifacts keeps the UI pointed at whatever
+ * actually exists on the connected chain.
+ */
+export const LAUNCHES: Record<number, LaunchDeployment> = {
+  [localLaunch.chainId]: localLaunch as LaunchDeployment,
+};
+
+export const getLaunch = (chainId?: number): LaunchDeployment | undefined =>
+  chainId === undefined ? undefined : LAUNCHES[chainId];
+
+export const SUPPORTED_LAUNCH_CHAIN_IDS = Object.keys(LAUNCHES).map(Number);
+
+// --- legacy ethers/typechain helpers, kept for the existing script-based flow ---
+
+export function getIDOContract(address: string, signerOrProvider: any) {
+  return IDO__factory.connect(address, signerOrProvider);
 }
 
-export function getProjectTokenContract(signerOrProvider: any) {
-  return ProjectToken__factory.connect(PROJECT_TOKEN_ADDRESS, signerOrProvider);
+export function getProjectTokenContract(address: string, signerOrProvider: any) {
+  return ProjectToken__factory.connect(address, signerOrProvider);
 }

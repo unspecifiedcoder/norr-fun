@@ -1,0 +1,29 @@
+{
+  "chainId": 31337,
+  "deployedAt": "2026-08-17T21:12:57.095Z",
+  "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "contributionAsset": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "projectToken": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+  "feeRouter": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+  "ido": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+  "splits": [
+    {
+      "recipient": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "bps": 6000,
+      "category": "Creator",
+      "label": "Creator revenue"
+    },
+    {
+      "recipient": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "bps": 2500,
+      "category": "Partner",
+      "label": "Distribution partner"
+    },
+    {
+      "recipient": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+      "bps": 1500,
+      "category": "Treasury",
+      "label": "Treasury"
+    }
+  ]
+}

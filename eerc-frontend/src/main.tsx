@@ -8,14 +8,25 @@ import {
   getDefaultConfig,
   RainbowKitProvider,
 } from "@rainbow-me/rainbowkit";
-import { WagmiProvider  } from "wagmi";
-import { avalancheFuji } from "wagmi/chains";
+import { WagmiProvider, http } from "wagmi";
+import { avalancheFuji, hardhat } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { installDevWallet } from "./lib/dev-wallet";
+
+// Must run before the wagmi config is built so connector discovery sees it.
+// No-op unless this is a dev build launched with ?devwallet=1.
+installDevWallet();
 
 const config = getDefaultConfig({
-  appName: "Encrypted ERC Frontend",
+  appName: "norr.fun",
   projectId: "YOUR_PROJECT_ID", // can be dummy if only MetaMask
-  chains: [avalancheFuji],
+  // hardhat (31337) is included so a launch can be exercised end-to-end against
+  // a local node without spending anything on a live network.
+  chains: [avalancheFuji, hardhat],
+  transports: {
+    [avalancheFuji.id]: http(),
+    [hardhat.id]: http("http://127.0.0.1:8545"),
+  },
   ssr: false,
 });
 

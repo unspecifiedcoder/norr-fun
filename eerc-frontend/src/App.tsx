@@ -8,6 +8,7 @@ import { StyledInput } from "./components/StyledIntput";
 import { ActionButton } from "./components/ActionButton";
 import { Card } from "./components/Card";
 import { ParticleBackground } from "./components/ParticleBackground";
+import { FeeBuilder } from "./components/FeeBuilder";
 
 export default function App() {
   const { address, isConnected } = useAccount();
@@ -101,10 +102,15 @@ export default function App() {
                 </Card>
               </>
             ) : (
-              <p className="text-center text-gray-400 mt-6">
-                Please connect your wallet
+              <p className="text-center text-gray-400 mb-6">
+                Connect your wallet to use the private eERC actions
               </p>
             )}
+
+            {/* Fee Builder is readable without a wallet -- allocations and
+                distribution progress are public on-chain state. Its own
+                controls gate on connection. */}
+            <FeeBuilder />
           </div>
         </main>
       </div>
