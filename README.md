@@ -96,6 +96,60 @@ npx hardhat run scripts/converter/06_deposit.ts --network localhost
 
 ---
 
+## ⚡ Fee Builder & the web UI
+
+Raised proceeds are routed on-chain by `contracts/FeeRouter.sol` instead of
+landing in a single vault EOA. A launch declares who earns what in basis
+points (creator, distribution partner, rewards, marketing, buyback, liquidity,
+treasury, custom); the allocations must total exactly 100%, recipients pull
+their own share, and `lock()` freezes the table permanently so contributors
+can verify the economics cannot be rewritten after the fact.
+
+Both the Fee Builder and the token claim are reachable from the web UI.
+
+### Run the whole thing locally
+
+No keys and no testnet funds required — the local node ships with funded,
+publicly-known accounts.
+
+```bash
+npx hardhat node
+```
+
+```bash
+npx hardhat run scripts/ido/05_deploy_fee_router.ts --network localhost
+```
+
+Deploys the contribution asset, `ProjectToken`, `FeeRouter` and `IDO`, then
+writes the addresses to `eerc-frontend/src/deployments/launch-31337.json`,
+which the frontend reads. Splits default to 60/25/15 and are overridable with
+`SPLIT_CREATOR_BPS` / `SPLIT_PARTNER_BPS` / `SPLIT_TREASURY_BPS`.
+
+```bash
+npx hardhat run scripts/ido/08_setup_claims.ts --network localhost
+```
+
+Builds the Merkle tree from `scripts/ido/allocations.json`, publishes the
+root, finalizes, funds the claim pool, and writes the proofs the UI uses.
+
+```bash
+npm --prefix eerc-frontend run dev
+```
+
+Then open `http://localhost:5173/?devwallet=1`. The `devwallet` flag installs
+a development-only EIP-1193 provider that forwards to the local node and lets
+it sign, so no browser extension is needed. Add `&account=N` to connect as a
+different node account — `account=1` is the creator, who holds both a fee
+allocation and a token claim. The flag is inert in production builds.
+
+After changing a contract, regenerate the UI's ABIs:
+
+```bash
+npx hardhat compile && node scripts/gen-frontend-abis.js
+```
+
+---
+
 ### Part II: Running Your norr.fun IDO
 
 With the core system live, you can now launch your IDO.
