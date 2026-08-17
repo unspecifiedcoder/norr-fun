@@ -1,7 +1,8 @@
 // App.tsx
+import { useState } from "react";
 import { useAccount } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { FaPaperPlane, FaSearchDollar } from "react-icons/fa";
+import { FaPaperPlane, FaSearchDollar, FaPlus, FaStream, FaCoins } from "react-icons/fa";
 
 import { useEERC } from "./hooks/useEERC";
 import { StyledInput } from "./components/StyledIntput";
@@ -11,11 +12,23 @@ import { ParticleBackground } from "./components/ParticleBackground";
 import { FeeBuilder } from "./components/FeeBuilder";
 import { IdoClaim } from "./components/IdoClaim";
 import { Logo } from "./components/Logo";
+import { CreateLaunch } from "./components/CreateLaunch";
+import { Feed } from "./components/Feed";
+
+type View = "feed" | "create" | "manage" | "private";
+
+const TABS: { key: View; label: string; icon: React.ReactNode }[] = [
+  { key: "feed", label: "Raises", icon: <FaStream /> },
+  { key: "create", label: "Start one", icon: <FaPlus /> },
+  { key: "manage", label: "Payouts & claims", icon: <FaCoins /> },
+  { key: "private", label: "Private transfer", icon: <FaPaperPlane /> },
+];
 
 export default function App() {
   const { address, isConnected } = useAccount();
+  const [view, setView] = useState<View>("feed");
+
   const {
-    // EERC
     eercAddress, setEercAddress,
     transferAmount, setTransferAmount,
     transferRecipient, setTransferRecipient,
@@ -31,94 +44,115 @@ export default function App() {
       <ParticleBackground />
 
       <div className="relative z-10 w-full flex flex-col items-center">
-        <main className="w-full max-w-3xl bg-black bg-opacity-40 backdrop-blur-xl rounded-2xl border border-gray-700 shadow-2xl shadow-blue-500/10">
-          <div className="p-6 border-b border-gray-700 flex justify-between items-center">
+        <main className="w-full max-w-5xl bg-black bg-opacity-40 backdrop-blur-xl rounded-2xl border border-gray-700 shadow-2xl shadow-blue-500/10">
+          <div className="p-6 border-b border-gray-700 flex justify-between items-center gap-4 flex-wrap">
             <h1>
               <Logo size="2rem" />
             </h1>
             <ConnectButton />
           </div>
+
+          <nav className="px-6 pt-4 flex gap-1 flex-wrap border-b border-gray-800">
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setView(t.key)}
+                className={`px-4 py-2.5 text-sm rounded-t-lg flex items-center gap-2 transition-colors ${
+                  view === t.key
+                    ? "bg-white/10 text-white font-bold"
+                    : "text-gray-500 hover:text-gray-200 hover:bg-white/5"
+                }`}
+              >
+                <span className="text-xs">{t.icon}</span>
+                {t.label}
+              </button>
+            ))}
+          </nav>
+
           <div className="p-6">
-            {isConnected ? (
+            {view === "feed" && <Feed onCreate={() => setView("create")} />}
+
+            {view === "create" && <CreateLaunch onDone={() => setView("feed")} />}
+
+            {view === "manage" && (
               <>
-                <p className="text-center text-gray-400 mb-6">
-                  Connected as:{" "}
-                  <span className="font-bold text-indigo-400 break-all">
-                    {address}
-                  </span>
-                </p>
-
-                {/* Contract Setup */}
-                <Card title="1. Contract Setup">
-                  <div className="space-y-4">
-                    <StyledInput
-                      value={eercAddress}
-                      onChange={(e) => setEercAddress(e.target.value)}
-                      placeholder="EncryptedERC Contract Address (0x...)"
-                    />
-                  </div>
-                </Card>
-
-                {/* Private Actions */}
-                <Card title="2. Private Actions (eERC)">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Private Transfer */}
-                    <div className="flex flex-col gap-4">
-                      <h3 className="font-bold text-lg text-gray-300 flex items-center gap-2">
-                        <FaPaperPlane /> Private Transfer
-                      </h3>
-                      <StyledInput
-                        value={transferRecipient}
-                        onChange={(e) => setTransferRecipient(e.target.value)}
-                        placeholder="Recipient Address (0x...)"
-                      />
-                      <StyledInput
-                        value={transferAmount}
-                        onChange={(e) => setTransferAmount(e.target.value)}
-                        placeholder="Amount to send"
-                        type="number"
-                      />
-                      <ActionButton
-                        onClick={handleTransfer}
-                        disabled={!eercAddress || !transferRecipient || !transferAmount}
-                      >
-                        Send Privately
-                      </ActionButton>
-                    </div>
-
-                    {/* Check Balance */}
-                    <div className="flex flex-col gap-4">
-                      <h3 className="font-bold text-lg text-gray-300 flex items-center gap-2">
-                        <FaSearchDollar /> Check Balance
-                      </h3>
-                      <div className="bg-gray-800 border border-gray-600 rounded-lg p-4 text-center h-20 flex items-center justify-center">
-                        {decryptedBalance !== null ? (
-                          <p className="text-2xl font-bold text-green-400">
-                            {decryptedBalance}{" "}
-                            <span className="text-sm text-gray-400">eERC</span>
-                          </p>
-                        ) : (
-                          <p className="text-gray-500">Click below to decrypt</p>
-                        )}
-                      </div>
-                      <ActionButton onClick={handleCheckBalance} disabled={!eercAddress}>
-                        Check My Balance
-                      </ActionButton>
-                    </div>
-                  </div>
-                </Card>
+                <FeeBuilder />
+                <IdoClaim />
               </>
-            ) : (
-              <p className="text-center text-gray-400 mb-6">
-                Connect your wallet to use the private eERC actions
-              </p>
             )}
 
-            {/* Fee Builder is readable without a wallet -- allocations and
-                distribution progress are public on-chain state. Its own
-                controls gate on connection. */}
-            <FeeBuilder />
-            <IdoClaim />
+            {view === "private" && (
+              <>
+                {isConnected ? (
+                  <>
+                    <p className="text-center text-gray-400 mb-6">
+                      Signed in as{" "}
+                      <span className="font-bold text-indigo-400 break-all">
+                        {address}
+                      </span>
+                    </p>
+
+                    <Card title="Encrypted balance contract">
+                      <StyledInput
+                        value={eercAddress}
+                        onChange={(e) => setEercAddress(e.target.value)}
+                        placeholder="EncryptedERC Contract Address (0x...)"
+                      />
+                    </Card>
+
+                    <Card title="Move value without revealing the amount">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="flex flex-col gap-4">
+                          <h3 className="font-bold text-lg text-gray-300 flex items-center gap-2">
+                            <FaPaperPlane /> Send
+                          </h3>
+                          <StyledInput
+                            value={transferRecipient}
+                            onChange={(e) => setTransferRecipient(e.target.value)}
+                            placeholder="Recipient Address (0x...)"
+                          />
+                          <StyledInput
+                            value={transferAmount}
+                            onChange={(e) => setTransferAmount(e.target.value)}
+                            placeholder="Amount to send"
+                            type="number"
+                          />
+                          <ActionButton
+                            onClick={handleTransfer}
+                            disabled={!eercAddress || !transferRecipient || !transferAmount}
+                          >
+                            Send privately
+                          </ActionButton>
+                        </div>
+
+                        <div className="flex flex-col gap-4">
+                          <h3 className="font-bold text-lg text-gray-300 flex items-center gap-2">
+                            <FaSearchDollar /> Your balance
+                          </h3>
+                          <div className="bg-gray-800 border border-gray-600 rounded-lg p-4 text-center h-20 flex items-center justify-center">
+                            {decryptedBalance !== null ? (
+                              <p className="text-2xl font-bold text-green-400">
+                                {decryptedBalance}{" "}
+                                <span className="text-sm text-gray-400">eERC</span>
+                              </p>
+                            ) : (
+                              <p className="text-gray-500">Decrypt to reveal</p>
+                            )}
+                          </div>
+                          <ActionButton onClick={handleCheckBalance} disabled={!eercAddress}>
+                            Decrypt my balance
+                          </ActionButton>
+                        </div>
+                      </div>
+                    </Card>
+                  </>
+                ) : (
+                  <p className="text-center text-gray-400 py-8">
+                    Connect a wallet to move encrypted balances.
+                  </p>
+                )}
+              </>
+            )}
           </div>
         </main>
       </div>

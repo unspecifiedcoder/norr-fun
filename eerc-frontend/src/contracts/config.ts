@@ -1,5 +1,6 @@
 import { IDO__factory, ProjectToken__factory } from "../typechain-types";
 import localLaunch from "../deployments/launch-31337.json";
+import localRegistry from "../deployments/registry-31337.json";
 
 export type LaunchSplit = {
   recipient: string;
@@ -35,6 +36,20 @@ export const getLaunch = (chainId?: number): LaunchDeployment | undefined =>
   chainId === undefined ? undefined : LAUNCHES[chainId];
 
 export const SUPPORTED_LAUNCH_CHAIN_IDS = Object.keys(LAUNCHES).map(Number);
+
+export type RegistryDeployment = {
+  chainId: number;
+  address: string;
+  deployer: string;
+};
+
+/** LaunchRegistry per chain, written by scripts/ido/09_deploy_registry.ts. */
+export const REGISTRIES: Record<number, RegistryDeployment> = {
+  [localRegistry.chainId]: localRegistry as RegistryDeployment,
+};
+
+export const getRegistry = (chainId?: number): RegistryDeployment | undefined =>
+  chainId === undefined ? undefined : REGISTRIES[chainId];
 
 // --- legacy ethers/typechain helpers, kept for the existing script-based flow ---
 

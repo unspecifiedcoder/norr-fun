@@ -17,6 +17,8 @@ const SOURCES = {
   feeRouterAbi: "artifacts/contracts/FeeRouter.sol/FeeRouter.json",
   idoAbi: "artifacts/contracts/IDO.sol/IDO.json",
   erc20Abi: "artifacts/contracts/tokens/SimpleERC20.sol/SimpleERC20.json",
+  launchRegistryAbi: "artifacts/contracts/LaunchRegistry.sol/LaunchRegistry.json",
+  projectTokenAbi: "artifacts/contracts/ProjectToken.sol/ProjectToken.json",
 };
 
 const abiOf = (relative) => {
@@ -37,3 +39,32 @@ const body = Object.entries(SOURCES)
 
 fs.writeFileSync(OUT, `${banner}\n${body}\n`);
 console.log(`Wrote ${path.relative(ROOT, OUT)}`);
+
+/**
+ * Creation bytecode for the contracts the launch wizard deploys from the
+ * browser. Deploying needs bytecode as well as an ABI, and keeping it in its
+ * own module stops the (large) hex literals from bloating the ABI file.
+ */
+const DEPLOYABLE = {
+  projectTokenBytecode: "artifacts/contracts/ProjectToken.sol/ProjectToken.json",
+  feeRouterBytecode: "artifacts/contracts/FeeRouter.sol/FeeRouter.json",
+  idoBytecode: "artifacts/contracts/IDO.sol/IDO.json",
+  simpleErc20Bytecode: "artifacts/contracts/tokens/SimpleERC20.sol/SimpleERC20.json",
+};
+
+const OUT_BYTECODE = path.join(ROOT, "eerc-frontend/src/contracts/bytecode.ts");
+
+const bytecodeOf = (relative) => {
+  const artifact = JSON.parse(fs.readFileSync(path.join(ROOT, relative), "utf8"));
+  if (!artifact.bytecode || artifact.bytecode === "0x") {
+    throw new Error(`${relative} has no creation bytecode`);
+  }
+  return artifact.bytecode;
+};
+
+const bytecodeBody = Object.entries(DEPLOYABLE)
+  .map(([name, rel]) => `export const ${name} = "${bytecodeOf(rel)}" as const;`)
+  .join("\n\n");
+
+fs.writeFileSync(OUT_BYTECODE, `${banner}\n${bytecodeBody}\n`);
+console.log(`Wrote ${path.relative(ROOT, OUT_BYTECODE)}`);
