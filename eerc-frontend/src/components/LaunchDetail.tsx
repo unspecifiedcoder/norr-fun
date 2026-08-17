@@ -4,6 +4,7 @@ import { Card } from "./Card";
 import { FeeBuilder } from "./FeeBuilder";
 import { IdoClaim } from "./IdoClaim";
 import { Discussion } from "./Discussion";
+import { Market } from "./Market";
 import { useLaunchByIdo } from "../hooks/useLaunchByIdo";
 
 const short = (a: string) => `${a.slice(0, 8)}…${a.slice(-6)}`;
@@ -72,6 +73,7 @@ export const LaunchDetail = () => {
         </div>
       </Card>
 
+      <Market sale={launch.ido} />
       <FeeBuilder target={target} />
       <IdoClaim target={{ ido: launch.ido, projectToken: launch.projectToken }} />
       <Discussion subject={launch.ido} />
