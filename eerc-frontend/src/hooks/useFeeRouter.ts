@@ -25,13 +25,25 @@ export type SplitRow = LaunchSplit & {
  * Every figure here is read from chain -- nothing is derived from the
  * deployment file except the addresses and the human-readable labels.
  */
-export function useFeeRouter() {
+export type FeeRouterTarget = {
+  feeRouter: string;
+  contributionAsset: string;
+  splits: LaunchSplit[];
+};
+
+/**
+ * @param target Which launch to operate on. Omitted, it falls back to the
+ *   chain's seed deployment, which keeps the standalone panel working; the
+ *   launch detail route passes the launch the user actually opened.
+ */
+export function useFeeRouter(target?: FeeRouterTarget) {
   const chainId = useChainId();
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
   const { writeContractAsync, isPending: isWriting } = useWriteContract();
 
-  const launch = getLaunch(chainId);
+  const fallback = getLaunch(chainId);
+  const launch = target ?? fallback;
   const feeRouter = launch?.feeRouter as `0x${string}` | undefined;
   const asset = launch?.contributionAsset as `0x${string}` | undefined;
 

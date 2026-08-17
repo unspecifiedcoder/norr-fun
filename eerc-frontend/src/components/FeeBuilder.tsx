@@ -2,7 +2,7 @@ import { FaLock, FaCoins, FaArrowDown } from "react-icons/fa";
 import { Card } from "./Card";
 import { ActionButton } from "./ActionButton";
 import { StyledInput } from "./StyledIntput";
-import { useFeeRouter, type SplitRow } from "../hooks/useFeeRouter";
+import { useFeeRouter, type SplitRow, type FeeRouterTarget } from "../hooks/useFeeRouter";
 
 const CATEGORY_COLORS: Record<string, string> = {
   Creator: "bg-blue-500",
@@ -17,8 +17,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 const short = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
-export const FeeBuilder = () => {
-  const fr = useFeeRouter();
+export const FeeBuilder = ({ target }: { target?: FeeRouterTarget } = {}) => {
+  const fr = useFeeRouter(target);
 
   if (!fr.available) {
     return (

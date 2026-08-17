@@ -1,10 +1,10 @@
 import { FaGift, FaCheckCircle } from "react-icons/fa";
 import { Card } from "./Card";
 import { ActionButton } from "./ActionButton";
-import { useIdo } from "../hooks/useIdo";
+import { useIdo, type IdoTarget } from "../hooks/useIdo";
 
-export const IdoClaim = () => {
-  const ido = useIdo();
+export const IdoClaim = ({ target }: { target?: IdoTarget } = {}) => {
+  const ido = useIdo(target);
 
   if (!ido.available) {
     return (

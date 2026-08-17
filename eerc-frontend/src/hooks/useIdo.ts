@@ -18,13 +18,20 @@ const PROOFS: Record<number, { root: string; proofs: Record<string, ProofEntry> 
  * scripts/ido/08_setup_claims.ts; everything about claim state is read from
  * chain so a stale proof file cannot make the UI claim something already taken.
  */
-export function useIdo() {
+export type IdoTarget = { ido: string; projectToken: string };
+
+/**
+ * @param target Which sale to read. Omitted, it falls back to the chain's seed
+ *   deployment; the launch detail route passes the sale the user opened.
+ */
+export function useIdo(target?: IdoTarget) {
   const chainId = useChainId();
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
 
-  const launch = getLaunch(chainId);
+  const fallback = getLaunch(chainId);
+  const launch = target ?? fallback;
   const ido = launch?.ido as `0x${string}` | undefined;
   const projectToken = launch?.projectToken as `0x${string}` | undefined;
 

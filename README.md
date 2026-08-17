@@ -142,6 +142,11 @@ it sign, so no browser extension is needed. Add `&account=N` to connect as a
 different node account — `account=1` is the creator, who holds both a fee
 allocation and a token claim. The flag is inert in production builds.
 
+The UI uses client-side routing (`/raise/:sale`, `/u/:address`), so a static
+host must rewrite unknown paths to `index.html` or deep links 404 on refresh.
+`eerc-frontend/public/_redirects` covers Netlify and Cloudflare Pages; other
+hosts need their own equivalent rule.
+
 After changing a contract, regenerate the UI's ABIs:
 
 ```bash

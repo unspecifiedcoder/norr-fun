@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { FaPlus } from "react-icons/fa";
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { FaPlus, FaSearch } from "react-icons/fa";
 import { ActionButton } from "./ActionButton";
 import { useRegistryFeed, SORTS, type FeedSort, type FeedRow } from "../hooks/useRegistryFeed";
 
@@ -15,7 +16,27 @@ const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
  */
 export const Feed = ({ onCreate }: { onCreate: () => void }) => {
   const [sort, setSort] = useState<FeedSort>("newest");
+  const [query, setQuery] = useState("");
   const feed = useRegistryFeed(sort);
+
+  // Matches name, ticker, summary and both addresses, so a pasted address
+  // finds its raise as readily as a typed name.
+  const rows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return feed.rows;
+    return feed.rows.filter((r) =>
+      [
+        r.launch.name,
+        r.launch.symbol,
+        r.launch.description,
+        r.launch.ido,
+        r.launch.creator,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [feed.rows, query]);
 
   if (!feed.hasRegistry) {
     return (
@@ -44,20 +65,36 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
             </button>
           ))}
         </div>
-        <p className="text-xs text-gray-500">
-          {feed.total} {feed.total === 1 ? "raise" : "raises"} on chain {feed.chainId}
-        </p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <label className="relative">
+            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-600" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Find a raise or paste an address"
+              aria-label="Search raises"
+              className="bg-gray-800 border border-gray-600 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-blue-500 w-64 max-w-full"
+            />
+          </label>
+          <p className="text-xs text-gray-500">
+            {feed.total} {feed.total === 1 ? "raise" : "raises"} on chain {feed.chainId}
+          </p>
+        </div>
       </div>
 
-      {feed.rows.length === 0 ? (
-        <Empty
-          title="No raises yet"
-          body="Be the first. Deploying takes four signatures and about a minute."
-          action={<ActionButton onClick={onCreate}><FaPlus /> Start a raise</ActionButton>}
-        />
+      {rows.length === 0 ? (
+        query.trim() ? (
+          <Empty title="Nothing matched" body={`No raise matches "${query.trim()}".`} />
+        ) : (
+          <Empty
+            title="No raises yet"
+            body="Be the first. Deploying takes four signatures and about a minute."
+            action={<ActionButton onClick={onCreate}><FaPlus /> Start a raise</ActionButton>}
+          />
+        )
       ) : (
         <div className="space-y-3">
-          {feed.rows.map((row) => (
+          {rows.map((row) => (
             <Row key={row.launch.ido} row={row} />
           ))}
         </div>
@@ -72,7 +109,10 @@ const Row = ({ row }: { row: FeedRow }) => {
     row.raised > 0n ? Number((row.distributed * 10000n) / row.raised) / 100 : 0;
 
   return (
-    <article className="bg-black/40 border border-gray-700 rounded-xl p-5 hover:border-gray-500 transition-colors">
+    <Link
+      to={`/raise/${launch.ido}`}
+      className="block bg-black/40 border border-gray-700 rounded-xl p-5 hover:border-gray-500 hover:bg-black/60 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+    >
       <div className="flex items-start gap-4">
         <div className="w-11 h-11 rounded-lg bg-gradient-to-br from-cyan-500/25 to-fuchsia-500/25 border border-gray-600 grid place-items-center shrink-0 text-[11px] font-bold">
           {launch.symbol.slice(0, 4)}
@@ -112,7 +152,7 @@ const Row = ({ row }: { row: FeedRow }) => {
           </div>
         </div>
       </div>
-    </article>
+    </Link>
   );
 };
 
