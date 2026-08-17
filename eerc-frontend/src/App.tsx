@@ -2,7 +2,7 @@
 import { NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import { useAccount } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { FaPaperPlane, FaSearchDollar, FaPlus, FaStream, FaUser, FaColumns, FaHandHoldingUsd, FaBell } from "react-icons/fa";
+import { FaPaperPlane, FaSearchDollar, FaPlus, FaStream, FaUser, FaColumns, FaHandHoldingUsd, FaBell, FaCog } from "react-icons/fa";
 
 import { useEERC } from "./hooks/useEERC";
 import { StyledInput } from "./components/StyledIntput";
@@ -17,6 +17,9 @@ import { Profile } from "./components/Profile";
 import { Boards, BoardDetail } from "./components/Boards";
 import { Earnings } from "./components/Earnings";
 import { Activity } from "./components/Activity";
+import { Preferences } from "./components/Preferences";
+import { usePreferences } from "./hooks/usePreferences";
+import { ChainGuard } from "./components/ChainGuard";
 
 const TABS = [
   { to: "/", label: "Raises", icon: <FaStream />, end: true },
@@ -26,15 +29,17 @@ const TABS = [
   { to: "/activity", label: "Activity", icon: <FaBell />, end: false },
   { to: "/me", label: "You", icon: <FaUser />, end: false },
   { to: "/private", label: "Private transfer", icon: <FaPaperPlane />, end: false },
+  { to: "/settings", label: "Settings", icon: <FaCog />, end: false },
 ];
 
 export default function App() {
+  const { prefs } = usePreferences();
   return (
     // justify-center would push overflow above the top of the viewport once the
     // page grows taller than the screen, making it unscrollable; start-aligned
     // with vertical padding keeps tall content reachable.
     <div className="min-h-screen text-white flex flex-col items-center justify-start font-mono p-4 py-10">
-      <ParticleBackground />
+      {prefs.showBackdrop && <ParticleBackground />}
 
       <div className="relative z-10 w-full flex flex-col items-center">
         <main className="w-full max-w-5xl bg-black bg-opacity-40 backdrop-blur-xl rounded-2xl border border-gray-700 shadow-2xl shadow-blue-500/10">
@@ -77,6 +82,11 @@ export default function App() {
               <Route path="/me" element={<Profile />} />
               <Route path="/u/:address" element={<Profile />} />
               <Route path="/private" element={<PrivateTransfer />} />
+              <Route path="/settings" element={<Preferences />} />
+              {/* Chain-scoped mirrors, so a shared link carries its network. */}
+              <Route path="/:chain/raise/:ido" element={<ChainGuard><LaunchDetail /></ChainGuard>} />
+              <Route path="/:chain/desk/:slug" element={<ChainGuard><BoardDetail /></ChainGuard>} />
+              <Route path="/:chain/u/:address" element={<ChainGuard><Profile /></ChainGuard>} />
               <Route path="*" element={<FeedRoute />} />
             </Routes>
           </div>

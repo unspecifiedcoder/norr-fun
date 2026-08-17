@@ -6,6 +6,7 @@ import {
 import { Card } from "./Card";
 import { ActionButton } from "./ActionButton";
 import { useActivity, type ActivityItem } from "../hooks/useActivity";
+import { usePreferences } from "../hooks/usePreferences";
 
 const ICONS: Record<ActivityItem["kind"], React.ReactNode> = {
   released: <FaCoins />,
@@ -32,7 +33,8 @@ const TONES: Record<ActivityItem["kind"], string> = {
  * on the protocol, which is what makes it useful before you have any history.
  */
 export const Activity = () => {
-  const [mine, setMine] = useState(true);
+  const { prefs } = usePreferences();
+  const [mine, setMine] = useState(prefs.activityScope === "mine");
   const a = useActivity(mine);
 
   if (!a.hasRegistry) {

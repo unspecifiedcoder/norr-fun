@@ -5,6 +5,9 @@ import { FeeBuilder } from "./FeeBuilder";
 import { IdoClaim } from "./IdoClaim";
 import { Discussion } from "./Discussion";
 import { Market } from "./Market";
+import { Holders } from "./Holders";
+import { getMarket } from "../hooks/useMarket";
+import { slugForChain } from "./ChainGuard";
 import { useLaunchByIdo } from "../hooks/useLaunchByIdo";
 
 const short = (a: string) => `${a.slice(0, 8)}…${a.slice(-6)}`;
@@ -68,6 +71,11 @@ export const LaunchDetail = () => {
                 label="Opened"
                 value={new Date(Number(launch.createdAt) * 1000).toLocaleDateString()}
               />
+              <Row
+                label="Share link"
+                value={`/${slugForChain(chainId)}/raise/${launch.ido.slice(0, 8)}…`}
+                copy={`${window.location.origin}/${slugForChain(chainId)}/raise/${launch.ido}`}
+              />
             </div>
           </div>
         </div>
@@ -76,6 +84,10 @@ export const LaunchDetail = () => {
       <Market sale={launch.ido} />
       <FeeBuilder target={target} />
       <IdoClaim target={{ ido: launch.ido, projectToken: launch.projectToken }} />
+      <Holders
+        token={launch.projectToken}
+        exclude={[launch.ido, launch.feeRouter, getMarket(chainId, launch.ido) ?? ""].filter(Boolean)}
+      />
       <Discussion subject={launch.ido} />
     </>
   );

@@ -1,0 +1,74 @@
+import { useCallback, useEffect, useState } from "react";
+
+export type Preferences = {
+  /** Default slippage tolerance, in percent, prefilled into the trade panel. */
+  slippagePct: string;
+  /** The animated backdrop is decorative and costs a canvas repaint loop. */
+  showBackdrop: boolean;
+  /** Whether the activity feed opens scoped to you or to the whole protocol. */
+  activityScope: "mine" | "all";
+  /** Collapse long addresses to their ends. */
+  abbreviateAddresses: boolean;
+};
+
+export const DEFAULT_PREFERENCES: Preferences = {
+  slippagePct: "1",
+  showBackdrop: true,
+  activityScope: "mine",
+  abbreviateAddresses: true,
+};
+
+const KEY = "norr.preferences.v1";
+const EVENT = "norr:preferences";
+
+/**
+ * Display preferences, held locally.
+ *
+ * Deliberately not on chain: these change nothing another party can verify, and
+ * writing them would cost gas for a cosmetic choice. Anything consequential --
+ * follows, watchlist -- lives on chain instead.
+ *
+ * Changes broadcast on a custom event so every mounted reader updates at once;
+ * the storage event alone only fires in other tabs.
+ */
+const read = (): Preferences => {
+  if (typeof window === "undefined") return DEFAULT_PREFERENCES;
+  try {
+    const raw = window.localStorage.getItem(KEY);
+    if (!raw) return DEFAULT_PREFERENCES;
+    // Merge rather than replace, so a preference added in a later version does
+    // not come back undefined for someone with stored settings.
+    return { ...DEFAULT_PREFERENCES, ...(JSON.parse(raw) as Partial<Preferences>) };
+  } catch {
+    return DEFAULT_PREFERENCES;
+  }
+};
+
+export function usePreferences() {
+  const [prefs, setPrefs] = useState<Preferences>(read);
+
+  useEffect(() => {
+    const sync = () => setPrefs(read());
+    window.addEventListener(EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+
+  const set = useCallback(<K extends keyof Preferences>(key: K, value: Preferences[K]) => {
+    const next = { ...read(), [key]: value };
+    window.localStorage.setItem(KEY, JSON.stringify(next));
+    setPrefs(next);
+    window.dispatchEvent(new Event(EVENT));
+  }, []);
+
+  const reset = useCallback(() => {
+    window.localStorage.removeItem(KEY);
+    setPrefs(DEFAULT_PREFERENCES);
+    window.dispatchEvent(new Event(EVENT));
+  }, []);
+
+  return { prefs, set, reset };
+}

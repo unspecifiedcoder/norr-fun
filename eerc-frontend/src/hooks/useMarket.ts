@@ -3,6 +3,7 @@ import { useAccount, useChainId, usePublicClient, useReadContracts, useWriteCont
 import { formatUnits, parseUnits, parseAbiItem } from "viem";
 import { bondingCurveAbi, erc20Abi } from "../contracts/abis";
 import markets from "../deployments/market-31337.json";
+import { usePreferences } from "./usePreferences";
 
 const MARKETS: Record<number, Record<string, string>> = {
   [markets.chainId]: markets.markets as Record<string, string>,
@@ -50,7 +51,8 @@ export function useMarket(sale?: string) {
 
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [amount, setAmount] = useState("");
-  const [slippagePct, setSlippagePct] = useState("1");
+  const { prefs } = usePreferences();
+  const [slippagePct, setSlippagePct] = useState(prefs.slippagePct);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
   const [trades, setTrades] = useState<TradePoint[]>([]);
