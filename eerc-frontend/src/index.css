@@ -31,3 +31,104 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* --- norr.fun wordmark ------------------------------------------------- */
+
+.norr-logo {
+  display: inline-block;
+  line-height: 1;
+  /* Heavy condensed faces, widest-available first. No webfont fetch. */
+  font-family: "Arial Black", "Helvetica Neue", Impact, system-ui, sans-serif;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.03em;
+  /* Arial Black's own italic is a shallow oblique; skewing adds the extra
+     forward lean the mark is drawn around. */
+  transform: skewX(-6deg);
+  user-select: none;
+}
+
+.norr-logo__stack {
+  position: relative;
+  display: inline-block;
+  isolation: isolate;
+}
+
+/* Ghosts are removed from flow and pinned to the core so the element keeps the
+   core's exact metrics -- otherwise the offsets would widen the header box. */
+.norr-logo__ghost {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.norr-logo__ghost--cyan {
+  color: #22d3ee;
+  transform: translate(-0.055em, 0.022em);
+}
+
+.norr-logo__ghost--magenta {
+  color: #f0246c;
+  transform: translate(0.055em, -0.022em);
+}
+
+.norr-logo__core {
+  position: relative;
+  color: #ffffff;
+  /* A tight dark halo keeps the white readable where the ghosts pass under it. */
+  text-shadow:
+    0 0 0.02em rgba(8, 8, 12, 0.9),
+    0 0 0.35em rgba(34, 211, 238, 0.35);
+}
+
+/* Periodic channel-tear. Idle most of the cycle, so it reads as a glitch
+   rather than a constant animation. */
+@keyframes norr-logo-tear {
+  0%,
+  92%,
+  100% {
+    transform: translate(-0.055em, 0.022em);
+  }
+  93% {
+    transform: translate(-0.14em, 0.022em);
+  }
+  95% {
+    transform: translate(0.02em, 0.038em);
+  }
+  97% {
+    transform: translate(-0.08em, 0.008em);
+  }
+}
+
+@keyframes norr-logo-tear-alt {
+  0%,
+  92%,
+  100% {
+    transform: translate(0.055em, -0.022em);
+  }
+  94% {
+    transform: translate(0.15em, -0.022em);
+  }
+  96% {
+    transform: translate(-0.02em, -0.04em);
+  }
+  98% {
+    transform: translate(0.09em, -0.006em);
+  }
+}
+
+.norr-logo__ghost--cyan {
+  animation: norr-logo-tear 7s steps(1, end) infinite;
+}
+
+.norr-logo__ghost--magenta {
+  animation: norr-logo-tear-alt 7s steps(1, end) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .norr-logo__ghost--cyan,
+  .norr-logo__ghost--magenta {
+    animation: none;
+  }
+}

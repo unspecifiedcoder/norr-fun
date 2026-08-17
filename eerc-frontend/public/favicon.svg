@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <title>norr.fun</title>
+  <!--
+    "N" monogram in the wordmark's chromatic-aberration treatment. The full
+    wordmark is illegible at 16px, so the tab mark carries the letterform and
+    the RGB split only.
+
+    The N is drawn as a path rather than text so it renders identically without
+    depending on a font being installed.
+  -->
+  <defs>
+    <path id="n"
+      d="M14 48 L14 16 L24 16 L40 37 L40 16 L50 16 L50 48 L40 48 L24 27 L24 48 Z" />
+    <clipPath id="plate">
+      <rect x="0" y="0" width="64" height="64" rx="14" />
+    </clipPath>
+  </defs>
+
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="#0a0a11" />
+
+  <!-- Channel ghosts sit under the white core, offset on opposing diagonals.
+       Clipped to the plate so the split cannot bleed past the rounded corners. -->
+  <g clip-path="url(#plate)" transform="translate(5 0) skewX(-10)">
+    <use href="#n" fill="#22d3ee" transform="translate(-2.6 1)" />
+    <use href="#n" fill="#f0246c" transform="translate(2.6 -1)" />
+    <use href="#n" fill="#ffffff" />
+  </g>
+
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="13.25"
+    fill="none" stroke="#ffffff" stroke-opacity="0.10" stroke-width="1.5" />
+</svg>

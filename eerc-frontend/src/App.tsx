@@ -10,6 +10,7 @@ import { Card } from "./components/Card";
 import { ParticleBackground } from "./components/ParticleBackground";
 import { FeeBuilder } from "./components/FeeBuilder";
 import { IdoClaim } from "./components/IdoClaim";
+import { Logo } from "./components/Logo";
 
 export default function App() {
   const { address, isConnected } = useAccount();
@@ -32,7 +33,9 @@ export default function App() {
       <div className="relative z-10 w-full flex flex-col items-center">
         <main className="w-full max-w-3xl bg-black bg-opacity-40 backdrop-blur-xl rounded-2xl border border-gray-700 shadow-2xl shadow-blue-500/10">
           <div className="p-6 border-b border-gray-700 flex justify-between items-center">
-            <h1 className="text-2xl font-bold">🔐 norr.fun</h1>
+            <h1>
+              <Logo size="2rem" />
+            </h1>
             <ConnectButton />
           </div>
           <div className="p-6">
