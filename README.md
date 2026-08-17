@@ -96,7 +96,7 @@ npx hardhat run scripts/converter/06_deposit.ts --network localhost
 
 ---
 
-## ⚡ Fee Builder & the web UI
+## ⚡ Payout splits & the web UI
 
 Raised proceeds are routed on-chain by `contracts/FeeRouter.sol` instead of
 landing in a single vault EOA. A launch declares who earns what in basis
@@ -105,7 +105,7 @@ treasury, custom); the allocations must total exactly 100%, recipients pull
 their own share, and `lock()` freezes the table permanently so contributors
 can verify the economics cannot be rewritten after the fact.
 
-Both the Fee Builder and the token claim are reachable from the web UI.
+Both the payout split and the token claim are reachable from the web UI.
 
 ### Run the whole thing locally
 

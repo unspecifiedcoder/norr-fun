@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./FeeRouter.sol";
+import "./PairFactory.sol";
+import "./LiquidityPair.sol";
 
 /**
  * @title BondingCurve
@@ -52,9 +54,21 @@ contract BondingCurve is ReentrancyGuard {
 
     bool public graduated;
 
+    /**
+     * @notice Optional pool factory. When set, graduation seeds a live pool
+     *         with the released reserves instead of handing them to an address.
+     *         Left unset, reserves go to `graduationRecipient` as before, so a
+     *         launch that intends to graduate to an external venue can.
+     */
+    PairFactory public immutable pairFactory;
+
+    /// @notice Pool seeded at graduation, if any.
+    address public graduationPair;
+
     event Bought(address indexed buyer, uint256 baseIn, uint256 tokensOut, uint256 fee, uint256 priceX18);
     event Sold(address indexed seller, uint256 tokensIn, uint256 baseOut, uint256 fee, uint256 priceX18);
     event Graduated(uint256 baseReleased, uint256 tokensRemaining);
+    event PoolSeeded(address indexed pair, uint256 baseIn, uint256 tokensIn, uint256 shares);
 
     error AlreadyGraduated();
     error ZeroAmount();
@@ -72,7 +86,8 @@ contract BondingCurve is ReentrancyGuard {
         uint256 _tokenSupplyForCurve,
         uint256 _graduationTarget,
         uint16 _feeBps,
-        address _graduationRecipient
+        address _graduationRecipient,
+        address _pairFactory
     ) {
         if (_token == address(0) || _base == address(0) || _fees == address(0)) revert ZeroAddress();
         if (_graduationRecipient == address(0)) revert ZeroAddress();
@@ -87,6 +102,7 @@ contract BondingCurve is ReentrancyGuard {
         graduationTarget = _graduationTarget;
         feeBps = _feeBps;
         graduationRecipient = _graduationRecipient;
+        pairFactory = PairFactory(_pairFactory); // address(0) disables seeding
     }
 
     /// @notice Base side of the invariant, including the virtual portion.
@@ -191,8 +207,25 @@ contract BondingCurve is ReentrancyGuard {
         baseReserve = 0;
         tokenReserve = 0;
 
-        if (releasedBase > 0) base.safeTransfer(graduationRecipient, releasedBase);
-        if (remainingTokens > 0) token.safeTransfer(graduationRecipient, remainingTokens);
+        if (address(pairFactory) != address(0) && releasedBase > 0 && remainingTokens > 0) {
+            // Seed a live pool at the curve's final price, and hand the LP
+            // shares to the recipient so the position stays theirs.
+            address pair = pairFactory.ensurePair(address(token), address(base));
+            graduationPair = pair;
+
+            base.forceApprove(pair, releasedBase);
+            token.forceApprove(pair, remainingTokens);
+
+            (uint256 a0, uint256 a1) = address(token) < address(base)
+                ? (remainingTokens, releasedBase)
+                : (releasedBase, remainingTokens);
+
+            uint256 shares = LiquidityPair(pair).addLiquidity(a0, a1, graduationRecipient);
+            emit PoolSeeded(pair, releasedBase, remainingTokens, shares);
+        } else {
+            if (releasedBase > 0) base.safeTransfer(graduationRecipient, releasedBase);
+            if (remainingTokens > 0) token.safeTransfer(graduationRecipient, remainingTokens);
+        }
 
         emit Graduated(releasedBase, remainingTokens);
     }

@@ -23,10 +23,30 @@ async function main() {
   const token = await ethers.getContractAt("ProjectToken", launch.projectToken);
   const base = await ethers.getContractAt("SimpleERC20", launch.contributionAsset);
 
-  const curveSupply = ethers.parseUnits("800000", 18);
+  // Stock the curve with what the deployer actually holds, capped at the
+  // target. Re-running against a chain where an earlier curve already took the
+  // supply should open a smaller market, not abort.
+  const desiredSupply = ethers.parseUnits("800000", 18);
+  const available = await token.balanceOf(deployer.address);
+  const curveSupply = available < desiredSupply ? available : desiredSupply;
+  if (curveSupply === 0n) {
+    throw new Error(
+      `${deployer.address} holds no ${await token.symbol()} to stock a curve with`,
+    );
+  }
+  if (curveSupply < desiredSupply) {
+    console.log(
+      `Note: stocking with ${ethers.formatEther(curveSupply)} (holder balance), not ${ethers.formatEther(desiredSupply)}`,
+    );
+  }
   const virtualBase = ethers.parseUnits("30", 18);
   const target = ethers.parseUnits("100", 18);
   const feeBps = 100; // 1%, routed through the launch's existing split
+
+  const factory = await (await ethers.getContractFactory("PairFactory")).deploy();
+  await factory.waitForDeployment();
+  const factoryAddress = await factory.getAddress();
+  console.log(`PairFactory:  ${factoryAddress}`);
 
   const curve = await (
     await ethers.getContractFactory("BondingCurve")
@@ -39,6 +59,7 @@ async function main() {
     target,
     feeBps,
     deployer.address,
+    factoryAddress,
   );
   await curve.waitForDeployment();
   const address = await curve.getAddress();
@@ -59,6 +80,7 @@ async function main() {
         chainId: Number(chainId),
         // Keyed by sale contract: a launch has at most one market.
         markets: { [launch.ido]: address },
+        pairFactory: factoryAddress,
       },
       null,
       2,

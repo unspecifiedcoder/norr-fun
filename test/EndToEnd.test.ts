@@ -176,6 +176,7 @@ describe("End-to-end: every flow", () => {
       E("100"),
       100,
       deployer.address,
+      ethers.ZeroAddress,
     );
     await projectToken.connect(creator).transfer(await curve.getAddress(), curveSupply);
 

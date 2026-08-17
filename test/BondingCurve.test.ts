@@ -41,6 +41,7 @@ describe("BondingCurve", () => {
       TARGET,
       FEE_BPS,
       vault.address,
+      ethers.ZeroAddress, // no factory: reserves go to the recipient
     );
 
     // Stock the curve and fund the trader.
@@ -177,6 +178,7 @@ describe("BondingCurve", () => {
         TARGET,
         1_001,
         vault.address,
+        ethers.ZeroAddress,
       ),
     ).to.be.revertedWithCustomError(curve, "FeeTooHigh");
   });

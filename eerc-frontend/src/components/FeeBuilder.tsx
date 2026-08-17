@@ -22,7 +22,7 @@ export const FeeBuilder = ({ target }: { target?: FeeRouterTarget } = {}) => {
 
   if (!fr.available) {
     return (
-      <Card title="Fee Builder">
+      <Card title="Payout split">
         <p className="text-gray-400 text-sm">
           No launch deployed on chain{" "}
           <span className="text-indigo-400 font-bold">{fr.chainId}</span>.
@@ -38,11 +38,12 @@ export const FeeBuilder = ({ target }: { target?: FeeRouterTarget } = {}) => {
   }
 
   return (
-    <Card title="Fee Builder">
+    <Card title="Payout split">
       <p className="text-gray-400 text-sm mb-5">
-        Programmable routing of raised{" "}
-        <span className="text-indigo-400 font-bold">{fr.symbol}</span> across
-        recipients. Allocations are enforced on-chain and must total 100%.
+        Where raised{" "}
+        <span className="text-indigo-400 font-bold">{fr.symbol}</span> goes.
+        Shares are enforced by the contract and have to total 100%; each
+        recipient withdraws their own.
       </p>
 
       {/* Totals */}

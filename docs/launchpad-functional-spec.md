@@ -99,7 +99,7 @@ launches published through it.
   participants, volume).
 - Publisher-level fee defaults are inherited by launches created under it.
 
-**norr.fun mapping:** shipped as `BoardRegistry`. A desk sets a handle, a
+**norr.fun mapping:** shipped as `BoardRegistry` ("desks" in our copy). A desk sets a handle, a
 minimum share of any raise published through it, and open vs invite-only.
 `LaunchRegistry` enforces both at registration against the raise's actual
 `FeeRouter` split. Banner/logo uploads and metered API plans are omitted:
