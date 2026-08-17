@@ -31,6 +31,18 @@ contract LaunchRegistry {
         string name;
         string symbol;
         string description;
+        /// @notice Image for the launch. A URL or data URI supplied by the
+        ///         creator -- the protocol pins nothing and hosts nothing.
+        string logoURI;
+    }
+
+    /// @notice Presentation fields, grouped so `register` stays within the
+    ///         EVM's stack limits and gains a self-describing call site.
+    struct Metadata {
+        string name;
+        string symbol;
+        string description;
+        string logoURI;
     }
 
     BoardRegistry public immutable boards;
@@ -78,9 +90,7 @@ contract LaunchRegistry {
         address feeRouter,
         address contributionAsset,
         uint256 boardId,
-        string calldata name,
-        string calldata symbol,
-        string calldata description
+        Metadata calldata meta
     ) external returns (uint256 id) {
         if (
             projectToken == address(0) ||
@@ -88,7 +98,7 @@ contract LaunchRegistry {
             feeRouter == address(0) ||
             contributionAsset == address(0)
         ) revert ZeroAddress();
-        if (bytes(name).length == 0 || bytes(symbol).length == 0) revert EmptyField();
+        if (bytes(meta.name).length == 0 || bytes(meta.symbol).length == 0) revert EmptyField();
         if (isRegistered[ido]) revert AlreadyRegistered();
 
         // Board terms are enforced here rather than in the client, so a raise
@@ -116,9 +126,10 @@ contract LaunchRegistry {
                 creator: msg.sender,
                 createdAt: uint64(block.timestamp),
                 boardId: boardId,
-                name: name,
-                symbol: symbol,
-                description: description
+                name: meta.name,
+                symbol: meta.symbol,
+                description: meta.description,
+                logoURI: meta.logoURI
             })
         );
         _byCreator[msg.sender].push(id);

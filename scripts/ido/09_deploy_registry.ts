@@ -29,6 +29,15 @@ async function main() {
   const socialAddress = await social.getAddress();
   console.log(`SocialGraph:    ${socialAddress}`);
 
+  const promotion = await (
+    await ethers.getContractFactory("Promotion")
+  ).deploy(deployer.address);
+  await promotion.waitForDeployment();
+  const promotionAddress = await promotion.getAddress();
+  await (await promotion.addTier("Boosted", ethers.parseEther("0.05"), 86_400)).wait();
+  await (await promotion.addTier("Headline", ethers.parseEther("0.2"), 604_800)).wait();
+  console.log(`Promotion:      ${promotionAddress} (2 paid tiers)`);
+
   const registry = await (
     await ethers.getContractFactory("LaunchRegistry")
   ).deploy(boardsAddress);
@@ -50,9 +59,12 @@ async function main() {
         launch.feeRouter,
         launch.contributionAsset,
         0, // seed launch is not published under a board
-        await token.name(),
-        await token.symbol(),
-        "Seed launch deployed by scripts/ido/05_deploy_fee_router.ts",
+        {
+          name: await token.name(),
+          symbol: await token.symbol(),
+          description: "Seed launch deployed by scripts/ido/05_deploy_fee_router.ts",
+          logoURI: "",
+        },
       )
     ).wait();
     console.log(`Back-registered existing launch ${launch.ido}`);
@@ -68,6 +80,7 @@ async function main() {
         boards: boardsAddress,
         comments: commentsAddress,
         social: socialAddress,
+        promotion: promotionAddress,
         deployer: deployer.address,
       },
       null,

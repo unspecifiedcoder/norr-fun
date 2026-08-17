@@ -126,7 +126,7 @@ describe("LaunchRegistry + boards", () => {
     ]);
     await registry.register(
       addr(1), addr(2), await router.getAddress(), addr(4), 0,
-      "Solo", "SOLO", "",
+      { name: "Solo", symbol: "SOLO", description: "", logoURI: "" },
     );
     expect((await registry.at(0)).boardId).to.equal(0n);
   });
@@ -136,7 +136,7 @@ describe("LaunchRegistry + boards", () => {
       { recipient: creator.address, bps: 10_000n, label: "all" },
     ]);
     await expect(
-      registry.register(addr(1), addr(2), await router.getAddress(), addr(4), 99, "X", "X", ""),
+      registry.register(addr(1), addr(2), await router.getAddress(), addr(4), 99, { name: "X", symbol: "X", description: "", logoURI: "" }),
     ).to.be.revertedWithCustomError(registry, "UnknownBoard");
   });
 
@@ -148,7 +148,7 @@ describe("LaunchRegistry + boards", () => {
     ]);
 
     await expect(
-      registry.register(addr(1), addr(2), await router.getAddress(), addr(4), id, "X", "X", ""),
+      registry.register(addr(1), addr(2), await router.getAddress(), addr(4), id, { name: "X", symbol: "X", description: "", logoURI: "" }),
     ).to.be.revertedWithCustomError(registry, "NotAllowedOnBoard");
   });
 
@@ -162,7 +162,7 @@ describe("LaunchRegistry + boards", () => {
       { recipient: creator.address, bps: 9_500n, label: "team" },
     ]);
     await expect(
-      registry.register(addr(1), addr(2), await stingy.getAddress(), addr(4), id, "X", "X", ""),
+      registry.register(addr(1), addr(2), await stingy.getAddress(), addr(4), id, { name: "X", symbol: "X", description: "", logoURI: "" }),
     ).to.be.revertedWithCustomError(registry, "BoardShareTooLow");
 
     // Meeting the terms succeeds, and the raise is indexed under the board.
@@ -171,7 +171,7 @@ describe("LaunchRegistry + boards", () => {
       { recipient: creator.address, bps: 9_000n, label: "team" },
     ]);
     await registry.register(
-      addr(5), addr(6), await fair.getAddress(), addr(8), id, "Fair", "FAIR", "",
+      addr(5), addr(6), await fair.getAddress(), addr(8), id, { name: "Fair", symbol: "FAIR", description: "", logoURI: "" },
     );
 
     expect(await registry.idsByBoard(id)).to.deep.equal([0n]);
@@ -191,7 +191,7 @@ describe("LaunchRegistry + boards", () => {
       { recipient: other.address, bps: 9_000n, label: "team" },
     ]);
     await registry.register(
-      addr(1), addr(2), await split.getAddress(), addr(4), id, "Split", "SPL", "",
+      addr(1), addr(2), await split.getAddress(), addr(4), id, { name: "Split", symbol: "SPL", description: "", logoURI: "" },
     );
     expect((await registry.at(0)).boardId).to.equal(id);
   });

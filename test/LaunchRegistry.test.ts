@@ -16,9 +16,7 @@ describe("LaunchRegistry", () => {
     addr(n * 4 + 3), // feeRouter
     addr(n * 4 + 4), // contributionAsset
     0, // boardId -- no publisher environment
-    `Launch ${n}`,
-    `L${n}`,
-    `description ${n}`,
+    { name: `Launch ${n}`, symbol: `L${n}`, description: `description ${n}`, logoURI: "" },
   ] as const;
 
   beforeEach(async () => {
@@ -59,15 +57,15 @@ describe("LaunchRegistry", () => {
     const base = entry(1);
 
     await expect(
-      registry.register(ethers.ZeroAddress, base[1], base[2], base[3], base[4], base[5], base[6], base[7]),
+      registry.register(ethers.ZeroAddress, base[1], base[2], base[3], base[4], base[5]),
     ).to.be.revertedWithCustomError(registry, "ZeroAddress");
 
     await expect(
-      registry.register(base[0], base[1], base[2], base[3], base[4], "", base[6], base[7]),
+      registry.register(base[0], base[1], base[2], base[3], base[4], { ...base[5], name: "" }),
     ).to.be.revertedWithCustomError(registry, "EmptyField");
 
     await expect(
-      registry.register(base[0], base[1], base[2], base[3], base[4], base[5], "", base[7]),
+      registry.register(base[0], base[1], base[2], base[3], base[4], { ...base[5], symbol: "" }),
     ).to.be.revertedWithCustomError(registry, "EmptyField");
   });
 

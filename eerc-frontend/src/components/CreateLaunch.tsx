@@ -56,6 +56,13 @@ export const CreateLaunch = ({ onDone }: { onDone: () => void }) => {
                 type="number"
               />
             </Field>
+            <Field label="Logo URL (optional)">
+              <StyledInput
+                value={c.draft.logoURI}
+                onChange={(e) => c.update("logoURI", e.target.value)}
+                placeholder="https://…/logo.png"
+              />
+            </Field>
             <Field label="One-line summary">
               <StyledInput
                 value={c.draft.description}

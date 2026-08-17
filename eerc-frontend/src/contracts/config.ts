@@ -47,6 +47,8 @@ export type RegistryDeployment = {
   comments: string;
   /** SocialGraph */
   social: string;
+  /** Promotion */
+  promotion: string;
   deployer: string;
 };
 

@@ -41,6 +41,8 @@ export type LaunchDraft = {
   symbol: string;
   supply: string;
   description: string;
+  /** Image URL for the launch. Supplied by the creator; nothing is hosted here. */
+  logoURI: string;
   /** Publisher desk to publish under; 0n for none. */
   boardId: bigint;
   splits: SplitDraft[];
@@ -116,6 +118,7 @@ export function useCreateLaunch() {
     symbol: "",
     supply: "1000000",
     description: "",
+    logoURI: "",
     boardId: 0n,
     splits: [blankSplit("Creator")],
   });
@@ -259,9 +262,12 @@ export function useCreateLaunch() {
           feeRouter,
           existing.contributionAsset as `0x${string}`,
           draft.boardId,
-          draft.name.trim(),
-          draft.symbol.trim(),
-          draft.description.trim(),
+          {
+            name: draft.name.trim(),
+            symbol: draft.symbol.trim(),
+            description: draft.description.trim(),
+            logoURI: draft.logoURI.trim(),
+          },
         ],
         account: address as `0x${string}`,
         chain: walletClient.chain,

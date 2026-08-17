@@ -22,6 +22,7 @@ const SOURCES = {
   launchCommentsAbi: "artifacts/contracts/LaunchComments.sol/LaunchComments.json",
   socialGraphAbi: "artifacts/contracts/SocialGraph.sol/SocialGraph.json",
   bondingCurveAbi: "artifacts/contracts/BondingCurve.sol/BondingCurve.json",
+  promotionAbi: "artifacts/contracts/Promotion.sol/Promotion.json",
   projectTokenAbi: "artifacts/contracts/ProjectToken.sol/ProjectToken.json",
 };
 

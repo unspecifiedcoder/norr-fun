@@ -14,6 +14,7 @@ export type RegistryLaunch = {
   name: string;
   symbol: string;
   description: string;
+  logoURI: string;
 };
 
 export type FeedRow = {

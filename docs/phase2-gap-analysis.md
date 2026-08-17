@@ -42,9 +42,13 @@ This becomes a real screen only if a second archetype ships.
 
 **B — wizard parity.** Same structure: identity fields, completeness gating,
 optional groups, programmable fee routing, live preview, applied settings.
-Two sub-features are deliberately absent: image upload (no asset pipeline —
-the reference pins to IPFS) and paid promotion tiers (no billing rail).
-Faking either is worse than their absence.
+
+Both sub-features once listed here as absent are now built. Launch images take
+a creator-supplied URL rather than a pinning service — the protocol hosts
+nothing, and a dead URL falls back to the ticker instead of a broken glyph.
+Promotion tiers are bought on-chain (`Promotion.sol`), so "featured" is a fact
+anyone can verify rather than a flag a backend sets; slots expire so early
+launches cannot hold the feed forever, and placement never touches economics.
 
 **C — launch detail.** Shipped in full: header, metadata, phase progress,
 participation, fee routing, claim, discussion, trading, price chart, fills and
@@ -86,8 +90,20 @@ Every row is shipped, or marked n/a with a reason that is about the reference's
 infrastructure rather than a capability we lack (asset hosting, private admin
 tooling, an archetype chooser for archetypes we do not have).
 
-Two sub-features inside shipped rows are deliberately absent, both because
-faking them would be worse than their absence: image upload (no asset pipeline)
-and paid promotion tiers (no billing rail). One row is partial by choice —
-graduation releases the capital to seed an external pool but does not call a
-specific DEX factory, since that would bind the protocol to one venue.
+One row is partial by choice: graduation releases the capital to seed an
+external pool but does not call a specific DEX factory, since that would bind
+the protocol to one venue and there is no DEX deployed here to target. It is
+the only reference capability not built.
+
+## Phase 4 coverage
+
+`test/EndToEnd.test.ts` walks all twelve flows in the order a real participant
+hits them, against a real chain: desk creation, launch deployment, desk-terms
+enforcement, proceeds routing and pull, tally publication and claim, market
+open and fee reuse, selling, graduation, discussion, follows and watchlist,
+paid promotion and its expiry, and finally a reconciliation asserting the read
+surfaces the UI depends on agree with what the write path did.
+
+It runs as one sequential story rather than isolated cases because the flows
+genuinely depend on each other; isolating them would assert a state that never
+occurs in practice.

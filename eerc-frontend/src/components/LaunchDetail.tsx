@@ -6,6 +6,7 @@ import { IdoClaim } from "./IdoClaim";
 import { Discussion } from "./Discussion";
 import { Market } from "./Market";
 import { Holders } from "./Holders";
+import { Promote } from "./Promote";
 import { getMarket } from "../hooks/useMarket";
 import { slugForChain } from "./ChainGuard";
 import { useLaunchByIdo } from "../hooks/useLaunchByIdo";
@@ -54,8 +55,20 @@ export const LaunchDetail = () => {
 
       <Card title={launch.name}>
         <div className="flex items-start gap-4 flex-wrap">
-          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500/25 to-fuchsia-500/25 border border-gray-600 grid place-items-center shrink-0 text-sm font-bold">
-            {launch.symbol.slice(0, 4)}
+          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500/25 to-fuchsia-500/25 border border-gray-600 grid place-items-center shrink-0 text-sm font-bold overflow-hidden">
+            {launch.logoURI ? (
+              <img
+                src={launch.logoURI}
+                alt=""
+                className="w-full h-full object-cover"
+                // A creator-supplied URL can 404 or be blocked; fall back to
+                // the ticker rather than leaving a broken-image glyph.
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            ) : null}
+            {!launch.logoURI && launch.symbol.slice(0, 4)}
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-gray-400 text-sm">
@@ -88,6 +101,7 @@ export const LaunchDetail = () => {
         token={launch.projectToken}
         exclude={[launch.ido, launch.feeRouter, getMarket(chainId, launch.ido) ?? ""].filter(Boolean)}
       />
+      <Promote sale={launch.ido} />
       <Discussion subject={launch.ido} />
     </>
   );
