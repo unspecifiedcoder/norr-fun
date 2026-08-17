@@ -12,6 +12,22 @@ dotenv.config();
 
 const RPC_URL = process.env.RPC_URL || "https://api.avax.network/ext/bc/C/rpc";
 
+/**
+ * Collect signing keys from the environment, tolerating absent/blank entries.
+ *
+ * Hardhat validates `networks.*.accounts` at config-load time, so a blank
+ * PRIVATE_KEY used to abort every task -- including `compile` and `test`, which
+ * never touch Fuji. Filtering here keeps local work possible with no keys set.
+ * Accepts PRIVATE_KEY_2 and the PRIVATE_KEY2 spelling used by the run scripts.
+ */
+const fujiAccounts = [
+  process.env.PRIVATE_KEY,
+  process.env.PRIVATE_KEY_2 || process.env.PRIVATE_KEY2,
+  process.env.PRIVATE_KEY_3 || process.env.PRIVATE_KEY3,
+]
+  .filter((key): key is string => !!key && key.trim().length > 0)
+  .map((key) => (key.startsWith("0x") ? key : `0x${key}`));
+
 const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.27",
@@ -33,7 +49,7 @@ const config: HardhatUserConfig = {
     fuji: {
       url: "https://api.avax-test.network/ext/bc/C/rpc",
       chainId: 43113,
-      accounts: [process.env.PRIVATE_KEY || "", process.env.PRIVATE_KEY_2 || ""],
+      accounts: fujiAccounts,
     },
   },
   gasReporter: {
