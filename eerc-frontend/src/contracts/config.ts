@@ -45,6 +45,8 @@ export type RegistryDeployment = {
   boards: string;
   /** LaunchComments */
   comments: string;
+  /** SocialGraph */
+  social: string;
   deployer: string;
 };
 

@@ -2,6 +2,9 @@ import { Link, useParams } from "react-router-dom";
 import { useAccount } from "wagmi";
 import { Card } from "./Card";
 import { useRegistryFeed } from "../hooks/useRegistryFeed";
+import { useSocial } from "../hooks/useSocial";
+import { ActionButton } from "./ActionButton";
+import { FaUserPlus, FaUserCheck } from "react-icons/fa";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
@@ -19,6 +22,7 @@ export const Profile = () => {
   const who = routeAddress ?? connected;
 
   const feed = useRegistryFeed("newest", 100);
+  const social = useSocial({ account: routeAddress ?? connected });
 
   if (!who) {
     return (
@@ -37,7 +41,17 @@ export const Profile = () => {
         {connected?.toLowerCase() === lower && (
           <p className="text-[11px] text-emerald-400 mt-2">This is you.</p>
         )}
-        <div className="grid grid-cols-2 gap-4 mt-5">
+        {social.canFollow && (
+          <div className="mt-4">
+            <ActionButton onClick={social.toggleFollow} disabled={social.busy}>
+              {social.isFollowing ? <FaUserCheck /> : <FaUserPlus />}
+              {social.isFollowing ? "Following" : "Follow"}
+            </ActionButton>
+          </div>
+        )}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5">
+          <Stat label="Followers" value={String(social.followers)} />
+          <Stat label="Following" value={String(social.following)} />
           <Stat label="Raises started" value={String(created.length)} />
           <Stat
             label="Total raised across them"

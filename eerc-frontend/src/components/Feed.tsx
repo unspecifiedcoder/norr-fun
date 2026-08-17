@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { FaPlus, FaSearch } from "react-icons/fa";
+import { FaPlus, FaSearch, FaBookmark, FaRegBookmark } from "react-icons/fa";
+import { useSocial } from "../hooks/useSocial";
 import { ActionButton } from "./ActionButton";
 import { useRegistryFeed, SORTS, type FeedSort, type FeedRow } from "../hooks/useRegistryFeed";
 
@@ -105,6 +106,7 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
 
 const Row = ({ row }: { row: FeedRow }) => {
   const { launch } = row;
+  const social = useSocial({ subject: launch.ido });
   const settledPct =
     row.raised > 0n ? Number((row.distributed * 10000n) / row.raised) / 100 : 0;
 
@@ -128,6 +130,25 @@ const Row = ({ row }: { row: FeedRow }) => {
               <Tag tone="amber">accepting funds</Tag>
             )}
             {row.locked && <Tag tone="violet">splits frozen</Tag>}
+            {social.isConnected && social.available && (
+              <button
+                onClick={(ev) => {
+                  // The whole card is a link; saving must not navigate.
+                  ev.preventDefault();
+                  ev.stopPropagation();
+                  social.toggleSave();
+                }}
+                disabled={social.busy}
+                aria-label={social.isSaved ? "Remove from watchlist" : "Save to watchlist"}
+                className="ml-auto text-gray-600 hover:text-amber-400 transition-colors disabled:opacity-40"
+              >
+                {social.isSaved ? (
+                  <FaBookmark className="text-amber-400 text-xs" />
+                ) : (
+                  <FaRegBookmark className="text-xs" />
+                )}
+              </button>
+            )}
           </div>
 
           {launch.description && (

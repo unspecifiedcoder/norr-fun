@@ -24,6 +24,11 @@ async function main() {
   const commentsAddress = await comments.getAddress();
   console.log(`LaunchComments: ${commentsAddress}`);
 
+  const social = await (await ethers.getContractFactory("SocialGraph")).deploy();
+  await social.waitForDeployment();
+  const socialAddress = await social.getAddress();
+  console.log(`SocialGraph:    ${socialAddress}`);
+
   const registry = await (
     await ethers.getContractFactory("LaunchRegistry")
   ).deploy(boardsAddress);
@@ -62,6 +67,7 @@ async function main() {
         address,
         boards: boardsAddress,
         comments: commentsAddress,
+        social: socialAddress,
         deployer: deployer.address,
       },
       null,

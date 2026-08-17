@@ -80,8 +80,9 @@ and inventing one would be fake.
 action. Trade history, price chart and holders are **not built**: a sealed
 private sale has no public per-trade record, no continuous price, and
 deliberately no visible holder list — that is the point of the product.
-Discussion needs a server this SPA does not have. Building any of them would
-require inventing data.
+Discussion is shipped on-chain (`LaunchComments`), which needs no server.
+Trade history, price chart and holders remain unbuilt because building them
+would require inventing data this protocol does not produce.
 
 ---
 
@@ -98,24 +99,44 @@ launches published through it.
   participants, volume).
 - Publisher-level fee defaults are inherited by launches created under it.
 
-**norr.fun mapping:** deferred. Requires a registry contract for publishers
-and an inheritance rule into `FeeRouter`. `FeeRouter` already supports a
-partner allocation, which is the economic half; the organisational half is a
-later phase.
+**norr.fun mapping:** shipped as `BoardRegistry`. A desk sets a handle, a
+minimum share of any raise published through it, and open vs invite-only.
+`LaunchRegistry` enforces both at registration against the raise's actual
+`FeeRouter` split. Banner/logo uploads and metered API plans are omitted:
+there is no asset pipeline and no billing rail, and faking either would be
+worse than their absence.
 
 ---
 
 ## E. Secondary flows
 
-- **Add liquidity** to an existing launch.
-- **Collect fees** — recipients withdraw what they have accrued.
-- **Participant profile** at `/u/<address>`: launches created and held.
-- Global search across launches and publishers.
-- Notification surface.
+Re-walked after the first pass, which had missed several of these.
 
-**norr.fun mapping:** fee collection already exists and works (`FeeRouter`
-pull-based `release`). Profile and search follow the registry. Liquidity
-provision is out of scope without a curve.
+- **Add liquidity** — create an AMM pool for an arbitrary ERC20 pair against a
+  protocol hook, reading token metadata on-chain to confirm the pair.
+- **Collect fees** — a single surface, reachable from anywhere, where a
+  recipient withdraws everything they have accrued across the whole protocol.
+  Not per-launch: it aggregates.
+- **Participant profile** at `/u/<address>` — richer than a launch list.
+  Counters for launches, publisher environments, **followers and following**,
+  and tabs for launches / liquidity positions / publishers / **saved items** /
+  followers / following.
+- **Social graph** — accounts follow each other; follower counts are public.
+- **Saved items** — a personal watchlist of launches.
+- Global search across launches and publishers.
+- Notification surface for activity on things you are involved in.
+
+**norr.fun mapping:**
+
+| Flow | Status |
+|---|---|
+| Collect fees, aggregated across every raise | build — `FeeRouter.release` exists but only per-raise |
+| Follow / followers | build — on-chain social graph |
+| Saved items | build — on-chain, so a watchlist follows the wallet not the browser |
+| Profile tabs over the above | build |
+| Search | shipped |
+| Add liquidity, liquidity positions | out of scope — needs an AMM |
+| Notifications | deferred — derivable from contract events, but wants an indexer to be useful |
 
 ---
 
@@ -123,10 +144,13 @@ provision is out of scope without a curve.
 
 | # | Capability | Status |
 |---|---|---|
-| 1 | `LaunchRegistry` — on-chain discovery | build now |
-| 2 | Creation wizard deploying a real launch | build now |
-| 3 | Feed backed by the registry | build now |
-| 4 | Launch detail: phase, splits, claim | extend existing panels |
-| 5 | Fee collection | already shipped |
-| 6 | Publisher environments | later |
-| 7 | Trading, charts, discussion, holders | needs a curve and a server |
+| 1 | `LaunchRegistry` — on-chain discovery | shipped |
+| 2 | Creation wizard deploying a real launch | shipped |
+| 3 | Feed backed by the registry | shipped |
+| 4 | Launch detail: phase, splits, claim | shipped |
+| 5 | Per-raise fee collection | shipped |
+| 6 | Publisher environments | shipped |
+| 7 | Discussion | shipped, on-chain |
+| 8 | Aggregated fee collection | build now |
+| 9 | Social graph and saved items | build now |
+| 10 | Trading, charts, liquidity, holder lists | needs an AMM; conflicts with a sealed sale |
