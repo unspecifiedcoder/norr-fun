@@ -2,7 +2,7 @@
 import { NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import { useAccount } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { FaPaperPlane, FaSearchDollar, FaPlus, FaStream, FaUser, FaColumns, FaHandHoldingUsd } from "react-icons/fa";
+import { FaPaperPlane, FaSearchDollar, FaPlus, FaStream, FaUser, FaColumns, FaHandHoldingUsd, FaBell } from "react-icons/fa";
 
 import { useEERC } from "./hooks/useEERC";
 import { StyledInput } from "./components/StyledIntput";
@@ -16,12 +16,14 @@ import { LaunchDetail } from "./components/LaunchDetail";
 import { Profile } from "./components/Profile";
 import { Boards, BoardDetail } from "./components/Boards";
 import { Earnings } from "./components/Earnings";
+import { Activity } from "./components/Activity";
 
 const TABS = [
   { to: "/", label: "Raises", icon: <FaStream />, end: true },
   { to: "/start", label: "Start one", icon: <FaPlus />, end: false },
   { to: "/desks", label: "Desks", icon: <FaColumns />, end: false },
   { to: "/owed", label: "Owed to you", icon: <FaHandHoldingUsd />, end: false },
+  { to: "/activity", label: "Activity", icon: <FaBell />, end: false },
   { to: "/me", label: "You", icon: <FaUser />, end: false },
   { to: "/private", label: "Private transfer", icon: <FaPaperPlane />, end: false },
 ];
@@ -71,6 +73,7 @@ export default function App() {
               <Route path="/desks" element={<Boards />} />
               <Route path="/desk/:slug" element={<BoardDetail />} />
               <Route path="/owed" element={<Earnings />} />
+              <Route path="/activity" element={<Activity />} />
               <Route path="/me" element={<Profile />} />
               <Route path="/u/:address" element={<Profile />} />
               <Route path="/private" element={<PrivateTransfer />} />
