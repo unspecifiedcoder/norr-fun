@@ -9,6 +9,7 @@ import { ActionButton } from "./components/ActionButton";
 import { Card } from "./components/Card";
 import { ParticleBackground } from "./components/ParticleBackground";
 import { FeeBuilder } from "./components/FeeBuilder";
+import { IdoClaim } from "./components/IdoClaim";
 
 export default function App() {
   const { address, isConnected } = useAccount();
@@ -114,6 +115,7 @@ export default function App() {
                 distribution progress are public on-chain state. Its own
                 controls gate on connection. */}
             <FeeBuilder />
+            <IdoClaim />
           </div>
         </main>
       </div>

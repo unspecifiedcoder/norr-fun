@@ -14,7 +14,7 @@ const DEFAULT_RPC = "http://127.0.0.1:8545";
 
 type RequestArgs = { method: string; params?: unknown[] };
 
-const createDevWallet = (rpcUrl: string) => {
+const createDevWallet = (rpcUrl: string, accountIndex: number) => {
   let requestId = 0;
   const listeners = new Map<string, Set<(...args: unknown[]) => void>>();
   let accounts: string[] = [];
@@ -52,7 +52,12 @@ const createDevWallet = (rpcUrl: string) => {
         case "eth_requestAccounts":
         case "eth_accounts": {
           if (accounts.length === 0) {
-            accounts = (await rpc("eth_accounts")) as string[];
+            const all = (await rpc("eth_accounts")) as string[];
+            // Connectors take the first entry as the active account, so rotate
+            // the requested index to the front rather than filtering the rest
+            // out -- the others stay available for signing.
+            const i = Math.min(Math.max(accountIndex, 0), all.length - 1);
+            accounts = [all[i], ...all.filter((_, idx) => idx !== i)];
           }
           return accounts;
         }
@@ -93,7 +98,10 @@ export const installDevWallet = () => {
   if (params.get("devwallet") !== "1") return;
 
   const rpcUrl = params.get("rpc") ?? DEFAULT_RPC;
-  const provider = createDevWallet(rpcUrl);
+  // ?account=N picks which unlocked node account to connect as, so different
+  // roles (deployer, contributor) can be exercised without a second browser.
+  const accountIndex = Number.parseInt(params.get("account") ?? "0", 10) || 0;
+  const provider = createDevWallet(rpcUrl, accountIndex);
 
   Object.defineProperty(window, "ethereum", {
     value: provider,
@@ -119,5 +127,7 @@ export const installDevWallet = () => {
   window.addEventListener("eip6963:requestProvider", announce);
   announce();
 
-  console.info(`[dev-wallet] active, forwarding to ${rpcUrl}`);
+  console.info(
+    `[dev-wallet] active, forwarding to ${rpcUrl} as account #${accountIndex}`,
+  );
 };
