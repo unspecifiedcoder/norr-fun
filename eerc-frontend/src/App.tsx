@@ -22,7 +22,10 @@ export default function App() {
   } = useEERC();
 
   return (
-    <div className="min-h-screen text-white flex flex-col items-center justify-center font-mono p-4">
+    // justify-center would push overflow above the top of the viewport once the
+    // page grows taller than the screen, making it unscrollable; start-aligned
+    // with vertical padding keeps tall content reachable.
+    <div className="min-h-screen text-white flex flex-col items-center justify-start font-mono p-4 py-10">
       <ParticleBackground />
 
       <div className="relative z-10 w-full flex flex-col items-center">
