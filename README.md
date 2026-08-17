@@ -1,8 +1,8 @@
-# 👻 GhostLaunch - A Private IDO Platform using eERC
+# 🌒 norr.fun - A Private IDO & Token Launch Platform using eERC
 
-GhostLaunch is a platform for conducting private Initial DEX Offerings (IDOs). It leverages the power of the Encrypted ERC (eERC) system to allow investors to contribute funds privately. Contributor amounts are hidden on-chain during the sale, and a public token claim is enabled after the sale concludes.
+norr.fun is a platform for conducting private Initial DEX Offerings (IDOs). It leverages the power of the Encrypted ERC (eERC) system to allow investors to contribute funds privately. Contributor amounts are hidden on-chain during the sale, and a public token claim is enabled after the sale concludes.
 
-## How GhostLaunch Works
+## How norr.fun Works
 
 The process is divided into three main phases:
 
@@ -96,7 +96,7 @@ npx hardhat run scripts/converter/06_deposit.ts --network localhost
 
 ---
 
-### Part II: Running Your GhostLaunch IDO
+### Part II: Running Your norr.fun IDO
 
 With the core system live, you can now launch your IDO.
 
@@ -149,12 +149,12 @@ IDO_ADDRESS=<YOUR_IDO_ADDRESS> \
 npx hardhat run scripts/ido/06_multi_claim_and_verify.ts --network localhost
 ```
 
-**Congratulations! Your private GhostLaunch IDO is complete.**
+**Congratulations! Your private norr.fun IDO is complete.**
 
 ---
 ## 📡 Deployments
 
-Current live deployment of **GhostLaunch IDO** for `MPT` token:
+Current live deployment of **norr.fun IDO** for `MPT` token:
 
 - **Project Token (MPT)**: [`0xa4589D893d4Dc98d680337832b6a9593bF2fA9cd`](https://snowtrace.io/address/0xa4589D893d4Dc98d680337832b6a9593bF2fA9cd)  
 - **IDO Contract**: [`0x24ea34EAffB7E17d02fe05fbF12351bCC670573b`](https://snowtrace.io/address/0x24ea34EAffB7E17d02fe05fbF12351bCC670573b)  
