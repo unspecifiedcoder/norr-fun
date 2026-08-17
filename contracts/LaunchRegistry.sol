@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import "./BoardRegistry.sol";
+import "./FeeRouter.sol";
+
 /**
  * @title LaunchRegistry
  * @notice On-chain index of norr.fun launches, so the app can discover them.
@@ -23,12 +26,19 @@ contract LaunchRegistry {
         address contributionAsset;
         address creator;
         uint64 createdAt;
+        /// @notice Publisher environment this raise is published under; 0 for none.
+        uint256 boardId;
         string name;
         string symbol;
         string description;
     }
 
+    BoardRegistry public immutable boards;
+
     Launch[] private _launches;
+
+    /// @notice Ids of launches published under each board.
+    mapping(uint256 => uint256[]) private _byBoard;
 
     /// @notice Indices into `_launches`, per creator.
     mapping(address => uint256[]) private _byCreator;
@@ -48,6 +58,14 @@ contract LaunchRegistry {
     error ZeroAddress();
     error EmptyField();
     error OutOfRange();
+    error UnknownBoard();
+    error NotAllowedOnBoard();
+    error BoardShareTooLow(uint256 required, uint256 provided);
+
+    constructor(BoardRegistry boardRegistry) {
+        if (address(boardRegistry) == address(0)) revert ZeroAddress();
+        boards = boardRegistry;
+    }
 
     /**
      * @notice Index a deployed launch.
@@ -59,6 +77,7 @@ contract LaunchRegistry {
         address ido,
         address feeRouter,
         address contributionAsset,
+        uint256 boardId,
         string calldata name,
         string calldata symbol,
         string calldata description
@@ -72,6 +91,19 @@ contract LaunchRegistry {
         if (bytes(name).length == 0 || bytes(symbol).length == 0) revert EmptyField();
         if (isRegistered[ido]) revert AlreadyRegistered();
 
+        // Board terms are enforced here rather than in the client, so a raise
+        // cannot be published under someone's board on terms they never set.
+        if (boardId != 0) {
+            if (!boards.exists(boardId)) revert UnknownBoard();
+            if (!boards.canPublish(boardId, msg.sender)) revert NotAllowedOnBoard();
+
+            (address boardOwner, uint16 minBps) = boards.terms(boardId);
+            if (minBps > 0) {
+                uint256 routed = FeeRouter(feeRouter).bpsOf(boardOwner);
+                if (routed < minBps) revert BoardShareTooLow(minBps, routed);
+            }
+        }
+
         isRegistered[ido] = true;
         id = _launches.length;
 
@@ -83,12 +115,14 @@ contract LaunchRegistry {
                 contributionAsset: contributionAsset,
                 creator: msg.sender,
                 createdAt: uint64(block.timestamp),
+                boardId: boardId,
                 name: name,
                 symbol: symbol,
                 description: description
             })
         );
         _byCreator[msg.sender].push(id);
+        if (boardId != 0) _byBoard[boardId].push(id);
 
         emit LaunchRegistered(id, msg.sender, ido, projectToken, feeRouter);
     }
@@ -122,5 +156,27 @@ contract LaunchRegistry {
 
     function idsByCreator(address creator) external view returns (uint256[] memory) {
         return _byCreator[creator];
+    }
+
+    function idsByBoard(uint256 boardId) external view returns (uint256[] memory) {
+        return _byBoard[boardId];
+    }
+
+    /// @notice Newest-first launches published under one board.
+    function pageByBoard(uint256 boardId, uint256 offset, uint256 limit)
+        external
+        view
+        returns (Launch[] memory items, uint256 total)
+    {
+        uint256[] storage ids = _byBoard[boardId];
+        total = ids.length;
+        if (offset >= total) return (new Launch[](0), total);
+
+        uint256 remaining = total - offset;
+        uint256 size = remaining < limit ? remaining : limit;
+        items = new Launch[](size);
+        for (uint256 i = 0; i < size; i++) {
+            items[i] = _launches[ids[total - 1 - offset - i]];
+        }
     }
 }

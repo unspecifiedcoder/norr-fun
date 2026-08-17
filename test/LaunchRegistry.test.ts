@@ -15,6 +15,7 @@ describe("LaunchRegistry", () => {
     addr(n * 4 + 2), // ido
     addr(n * 4 + 3), // feeRouter
     addr(n * 4 + 4), // contributionAsset
+    0, // boardId -- no publisher environment
     `Launch ${n}`,
     `L${n}`,
     `description ${n}`,
@@ -22,7 +23,10 @@ describe("LaunchRegistry", () => {
 
   beforeEach(async () => {
     [alice, bob] = await ethers.getSigners();
-    registry = await (await ethers.getContractFactory("LaunchRegistry")).deploy();
+    const boards = await (await ethers.getContractFactory("BoardRegistry")).deploy();
+    registry = await (
+      await ethers.getContractFactory("LaunchRegistry")
+    ).deploy(await boards.getAddress());
   });
 
   it("indexes a launch and attributes it to the caller", async () => {
@@ -34,6 +38,7 @@ describe("LaunchRegistry", () => {
     expect(stored.name).to.equal("Launch 1");
     expect(stored.symbol).to.equal("L1");
     expect(stored.ido).to.equal(ethers.getAddress(addr(6)));
+    expect(stored.boardId).to.equal(0n);
     expect(stored.createdAt).to.be.greaterThan(0n);
   });
 
@@ -54,15 +59,15 @@ describe("LaunchRegistry", () => {
     const base = entry(1);
 
     await expect(
-      registry.register(ethers.ZeroAddress, base[1], base[2], base[3], base[4], base[5], base[6]),
+      registry.register(ethers.ZeroAddress, base[1], base[2], base[3], base[4], base[5], base[6], base[7]),
     ).to.be.revertedWithCustomError(registry, "ZeroAddress");
 
     await expect(
-      registry.register(base[0], base[1], base[2], base[3], "", base[5], base[6]),
+      registry.register(base[0], base[1], base[2], base[3], base[4], "", base[6], base[7]),
     ).to.be.revertedWithCustomError(registry, "EmptyField");
 
     await expect(
-      registry.register(base[0], base[1], base[2], base[3], base[4], "", base[6]),
+      registry.register(base[0], base[1], base[2], base[3], base[4], base[5], "", base[7]),
     ).to.be.revertedWithCustomError(registry, "EmptyField");
   });
 

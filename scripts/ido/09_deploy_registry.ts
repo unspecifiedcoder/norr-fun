@@ -14,10 +14,22 @@ async function main() {
   const [deployer] = await ethers.getSigners();
   const { chainId } = await ethers.provider.getNetwork();
 
-  const registry = await (await ethers.getContractFactory("LaunchRegistry")).deploy();
+  const boards = await (await ethers.getContractFactory("BoardRegistry")).deploy();
+  await boards.waitForDeployment();
+  const boardsAddress = await boards.getAddress();
+  console.log(`BoardRegistry:  ${boardsAddress} (chain ${chainId})`);
+
+  const comments = await (await ethers.getContractFactory("LaunchComments")).deploy();
+  await comments.waitForDeployment();
+  const commentsAddress = await comments.getAddress();
+  console.log(`LaunchComments: ${commentsAddress}`);
+
+  const registry = await (
+    await ethers.getContractFactory("LaunchRegistry")
+  ).deploy(boardsAddress);
   await registry.waitForDeployment();
   const address = await registry.getAddress();
-  console.log(`LaunchRegistry: ${address} (chain ${chainId})`);
+  console.log(`LaunchRegistry: ${address}`);
 
   const deploymentsDir = path.join(__dirname, "../../eerc-frontend/src/deployments");
   const launchPath = path.join(deploymentsDir, `launch-${chainId}.json`);
@@ -32,6 +44,7 @@ async function main() {
         launch.ido,
         launch.feeRouter,
         launch.contributionAsset,
+        0, // seed launch is not published under a board
         await token.name(),
         await token.symbol(),
         "Seed launch deployed by scripts/ido/05_deploy_fee_router.ts",
@@ -43,7 +56,17 @@ async function main() {
   const outPath = path.join(deploymentsDir, `registry-${chainId}.json`);
   fs.writeFileSync(
     outPath,
-    `${JSON.stringify({ chainId: Number(chainId), address, deployer: deployer.address }, null, 2)}\n`,
+    `${JSON.stringify(
+      {
+        chainId: Number(chainId),
+        address,
+        boards: boardsAddress,
+        comments: commentsAddress,
+        deployer: deployer.address,
+      },
+      null,
+      2,
+    )}\n`,
   );
   console.log(`Wrote ${outPath}`);
   console.log(`Registry now holds ${await registry.count()} launch(es)`);

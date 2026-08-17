@@ -41,6 +41,8 @@ export type LaunchDraft = {
   symbol: string;
   supply: string;
   description: string;
+  /** Publisher desk to publish under; 0n for none. */
+  boardId: bigint;
   splits: SplitDraft[];
 };
 
@@ -52,6 +54,35 @@ export type DeployStep = {
 };
 
 const BPS_TOTAL = 10_000;
+
+/**
+ * Turn a revert into something a person can act on.
+ *
+ * viem reports a nested custom error as a bare "function reverted", which is
+ * useless after three successful signatures -- the reader needs to know which
+ * rule they broke and what to change.
+ */
+const REVERT_HELP: Record<string, string> = {
+  BoardShareTooLow:
+    "That desk requires a larger share than your split gives it. Raise the desk's allocation and deploy again — the contracts already deployed are reusable.",
+  NotAllowedOnBoard:
+    "That desk is invite-only and this wallet is not its operator. Pick another desk, or publish on your own.",
+  UnknownBoard: "That desk no longer exists on this network.",
+  AlreadyRegistered: "This sale contract is already published.",
+  BpsMustTotalDenominator: "Allocations must total exactly 100%.",
+};
+
+const explain = (err: unknown): string => {
+  const raw = JSON.stringify(
+    err,
+    (_k, v) => (typeof v === "bigint" ? v.toString() : v),
+  );
+  for (const [name, help] of Object.entries(REVERT_HELP)) {
+    if (raw.includes(name)) return help;
+  }
+  const e = err as { shortMessage?: string; message?: string };
+  return e.shortMessage ?? e.message ?? String(err);
+};
 
 let nextId = 0;
 export const blankSplit = (category: Category = "Creator"): SplitDraft => ({
@@ -85,6 +116,7 @@ export function useCreateLaunch() {
     symbol: "",
     supply: "1000000",
     description: "",
+    boardId: 0n,
     splits: [blankSplit("Creator")],
   });
 
@@ -226,6 +258,7 @@ export function useCreateLaunch() {
           ido,
           feeRouter,
           existing.contributionAsset as `0x${string}`,
+          draft.boardId,
           draft.name.trim(),
           draft.symbol.trim(),
           draft.description.trim(),
@@ -238,8 +271,7 @@ export function useCreateLaunch() {
 
       setDeployed({ projectToken, feeRouter, ido });
     } catch (err) {
-      const e = err as { shortMessage?: string; message?: string };
-      setError(e.shortMessage ?? e.message ?? String(err));
+      setError(explain(err));
       setSteps((prev) => {
         const i = prev.findIndex((s) => s.status === "active");
         return i === -1 ? prev : prev.map((s, n) => (n === i ? { ...s, status: "failed" } : s));

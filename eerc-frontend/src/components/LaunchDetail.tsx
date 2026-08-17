@@ -3,6 +3,7 @@ import { FaArrowLeft, FaCopy } from "react-icons/fa";
 import { Card } from "./Card";
 import { FeeBuilder } from "./FeeBuilder";
 import { IdoClaim } from "./IdoClaim";
+import { Discussion } from "./Discussion";
 import { useLaunchByIdo } from "../hooks/useLaunchByIdo";
 
 const short = (a: string) => `${a.slice(0, 8)}…${a.slice(-6)}`;
@@ -73,6 +74,7 @@ export const LaunchDetail = () => {
 
       <FeeBuilder target={target} />
       <IdoClaim target={{ ido: launch.ido, projectToken: launch.projectToken }} />
+      <Discussion subject={launch.ido} />
     </>
   );
 };

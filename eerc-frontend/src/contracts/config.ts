@@ -39,7 +39,12 @@ export const SUPPORTED_LAUNCH_CHAIN_IDS = Object.keys(LAUNCHES).map(Number);
 
 export type RegistryDeployment = {
   chainId: number;
+  /** LaunchRegistry */
   address: string;
+  /** BoardRegistry */
+  boards: string;
+  /** LaunchComments */
+  comments: string;
   deployer: string;
 };
 

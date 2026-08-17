@@ -18,6 +18,8 @@ const SOURCES = {
   idoAbi: "artifacts/contracts/IDO.sol/IDO.json",
   erc20Abi: "artifacts/contracts/tokens/SimpleERC20.sol/SimpleERC20.json",
   launchRegistryAbi: "artifacts/contracts/LaunchRegistry.sol/LaunchRegistry.json",
+  boardRegistryAbi: "artifacts/contracts/BoardRegistry.sol/BoardRegistry.json",
+  launchCommentsAbi: "artifacts/contracts/LaunchComments.sol/LaunchComments.json",
   projectTokenAbi: "artifacts/contracts/ProjectToken.sol/ProjectToken.json",
 };
 

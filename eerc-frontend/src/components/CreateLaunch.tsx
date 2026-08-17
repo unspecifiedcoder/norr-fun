@@ -8,6 +8,7 @@ import {
   type Category,
   type DeployStep,
 } from "../hooks/useCreateLaunch";
+import { useBoards } from "../hooks/useBoards";
 
 const CATEGORY_COLORS: Record<string, string> = {
   Creator: "bg-blue-500",
@@ -22,6 +23,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export const CreateLaunch = ({ onDone }: { onDone: () => void }) => {
   const c = useCreateLaunch();
+  const { boards } = useBoards();
+  const chosen = boards.find((b) => b.id === c.draft.boardId);
   const pct = c.totalBps / 100;
   const allocationOk = c.totalBps === 10_000;
 
@@ -60,6 +63,30 @@ export const CreateLaunch = ({ onDone }: { onDone: () => void }) => {
                 placeholder="What is this raise for?"
               />
             </Field>
+          </div>
+
+          <div className="mt-4">
+            <Field label="Publish through a desk">
+              <select
+                value={String(c.draft.boardId)}
+                onChange={(e) => c.update("boardId", BigInt(e.target.value))}
+                className="bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white text-sm outline-none focus:ring-2 focus:ring-blue-500 w-full"
+              >
+                <option value="0">On my own — no desk</option>
+                {boards.map((b) => (
+                  <option key={b.slug} value={String(b.id)}>
+                    {b.name} (/{b.slug}) — {b.minPartnerBps / 100}% minimum
+                  </option>
+                ))}
+              </select>
+            </Field>
+            {chosen && chosen.minPartnerBps > 0 && (
+              <p className="text-[11px] text-amber-400 mt-2">
+                This desk requires at least {chosen.minPartnerBps / 100}% routed to{" "}
+                {chosen.owner.slice(0, 6)}…{chosen.owner.slice(-4)}. The registry
+                checks your split against that and will reject the raise otherwise.
+              </p>
+            )}
           </div>
         </Card>
 
