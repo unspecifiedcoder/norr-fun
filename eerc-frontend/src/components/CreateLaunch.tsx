@@ -136,6 +136,26 @@ export const CreateLaunch = ({
   );
 
   const chosenDesk = boards.find((b) => b.id === c.draft.boardId);
+
+  /**
+   * Does the split actually satisfy the chosen desk?
+   *
+   * The registry checks this, and rejects on the fourth transaction — after
+   * three contract deployments have already been paid for. Every input the
+   * check needs is on this form, so there is no reason to learn the answer
+   * from a revert. Computed the same way the contract does: the desk owner's
+   * total share across every allocation, in basis points.
+   */
+  const deskShare = (() => {
+    if (!chosenDesk) return null;
+    const owner = chosenDesk.owner.toLowerCase();
+    const bps = c.draft.splits.reduce((sum, sp) => {
+      if (sp.recipient.trim().toLowerCase() !== owner) return sum;
+      const pct = Number.parseFloat(sp.percent);
+      return sum + (Number.isFinite(pct) ? Math.round(pct * 100) : 0);
+    }, 0);
+    return { bps, required: chosenDesk.minPartnerBps, ok: bps >= chosenDesk.minPartnerBps };
+  })();
   const allocated = c.totalBps / 100;
   const allocationOk = c.totalBps === 10_000;
 
@@ -301,12 +321,19 @@ export const CreateLaunch = ({
                 ))}
               </select>
             </Field>
-            {chosenDesk && chosenDesk.minPartnerBps > 0 && (
-              <p className="text-[length:var(--t-fine)] text-[var(--ochre)] mt-2 flex items-start gap-2">
-                <FaExclamationTriangle className="mt-0.5 shrink-0" />
-                This desk requires at least {chosenDesk.minPartnerBps / 100}% routed to{" "}
-                {short(chosenDesk.owner)}. The registry checks your split against
-                that and rejects the raise otherwise.
+            {chosenDesk && chosenDesk.minPartnerBps > 0 && deskShare && (
+              <p
+                className="text-[length:var(--t-fine)] mt-2 flex items-start gap-2"
+                style={{ color: deskShare.ok ? "var(--gain)" : "var(--ochre)" }}
+              >
+                {deskShare.ok ? (
+                  <FaCheck className="mt-0.5 shrink-0" />
+                ) : (
+                  <FaExclamationTriangle className="mt-0.5 shrink-0" />
+                )}
+                {deskShare.ok
+                  ? `Your split routes ${deskShare.bps / 100}% to ${short(chosenDesk.owner)}, which meets this desk's ${chosenDesk.minPartnerBps / 100}% minimum.`
+                  : `This desk requires at least ${chosenDesk.minPartnerBps / 100}% routed to ${short(chosenDesk.owner)}; your split gives it ${deskShare.bps / 100}%. The registry rejects the raise on the last of four transactions, after the first three have been paid for.`}
               </p>
             )}
           </Collapse>
@@ -549,15 +576,20 @@ export const CreateLaunch = ({
             <Meter value={coreDone} max={3} ticked={false} />
 
             <div className="mt-3">
-              <ActionButton onClick={c.deploy} disabled={!c.ready || c.busy}>
+              <ActionButton
+                onClick={c.deploy}
+                disabled={!c.ready || c.busy || deskShare?.ok === false}
+              >
                 <FaRocket />
                 {c.busy
                   ? "Deploying…"
-                  : c.ready
-                    ? "Deploy launch"
-                    : missing.length
-                      ? "Complete required fields"
-                      : "Resolve the checks below"}
+                  : deskShare?.ok === false
+                    ? "Desk minimum not met"
+                    : c.ready
+                      ? "Deploy launch"
+                      : missing.length
+                        ? "Complete required fields"
+                        : "Resolve the checks below"}
               </ActionButton>
             </div>
 
