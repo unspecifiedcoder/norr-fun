@@ -162,3 +162,45 @@ Legend for the run column: **PASS** / **FAIL** / **UNTESTABLE** (with reason).
 | I8 | Contract test suite | 103 passing |
 | I9 | Typecheck and lint | 0 errors |
 | I10 | Production build | Builds, and the built bundle carries the Buffer polyfill |
+
+---
+
+# Run result — chain 31337, browser, 2026-08-18
+
+**101 items: 100 PASS, 0 FAIL, 1 UNTESTED.**
+
+Executed against the running app with the dev wallet signing on a live
+Hardhat node. Every write below is a real signed transaction; no mocks, no
+stubs, no fallback data anywhere in the tested surface.
+
+## Fixed during the run
+
+| Item | Defect | Fix |
+|---|---|---|
+| H5 | SDK refuses a deposit with "Insufficient approval amount!" and never requests the allowance | `useEERC.deposit` reads the allowance and approves exactly the deposit amount first |
+| H5 | 100-token deposit displayed as an encrypted balance of `10000` beside a public `900` | Encrypted balance formatted with the encrypted token's own decimals |
+| H7 / C17 | Transfers scaled by the ERC20's 18 decimals; the contract rejected them as an invalid amount | Transfer and withdraw use the encrypted token's decimals; only deposit uses the ERC20's |
+| C17 | Passing a message made the SDK call a 5-arg `transfer(..., string)` this deployment does not declare — reverted with an unrecognised selector | Message dropped; the 4-arg form the contract has is used |
+| A9 | Shell badge read zero beside a page listing thirteen entries | One activity scan per scope, shared through a module-level cache |
+| I1 | An all-zero (empty) balance ciphertext threw out of render and blanked the app | SDK patched to return its own `-1n` "unreadable"; the UI states it plainly |
+| I1 | `metaMaskWallet` throws on load without a WalletConnect project id | Offered only when that id is configured |
+
+## Verified on chain
+
+- Buy: price `0.0₂266 → 0.0₂336`, liquidity `9.9 → 14.85`, fills `1 → 2`
+- Sell: fills `2 → 3`, from-ath turns negative
+- Claim: pool `150 → 100 MPT`, wallet `0 → 50 MPT`, claimable `0`
+- Fee release: ready `0.201 → 0`, collected `250 → 250.2`
+- Deploy: 4 transactions, published to the registry, appears in the feed
+- Desk create, duplicate slug refused, desk minimum enforced at registration
+- **Private contribution**: deposit `1000 → 900` public / `0 → 100` encrypted,
+  contribution `100 → 90`, tx `0xbe092b27…` status `0x1`, and the plaintext
+  amount appears nowhere in the 1572 bytes of calldata
+
+## Untested
+
+**I3 — wrong-network handling.** The app cannot be placed on a chain without
+a registry: the local dev provider is deliberately single-chain, and no second
+funded network is reachable. The branch exists and is shared with the desk
+registry's equivalent, but it was not exercised in a browser, so it is not
+marked passed.
