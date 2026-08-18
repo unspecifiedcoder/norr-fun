@@ -29,6 +29,40 @@ import { short, ago } from "./ui/format";
 
 const MARKER = /^↪#(\d+)\s*/;
 
+/**
+ * Addresses written in a comment become links.
+ *
+ * People quote wallets constantly in a thread — "0x7099… is the vault", "did
+ * 0x3C44… claim yet" — and every one of those was dead text the reader had to
+ * copy by hand. Matched strictly on the 0x-plus-40-hex shape so nothing else
+ * in the body is touched, and rendered short so a paragraph does not turn
+ * into a wall of hex.
+ */
+const ADDRESS = /(0x[a-fA-F0-9]{40})/g;
+
+const Body = ({ text }: { text: string }) => {
+  const parts = text.split(ADDRESS);
+  return (
+    <>
+      {parts.map((part, i) =>
+        ADDRESS.test(part) && part.length === 42 ? (
+          <Link
+            key={i}
+            to={`/u/${part}`}
+            className="text-[var(--falu)] hover:text-[var(--falu-bright)] transition-colors"
+            title={part}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {short(part)}
+          </Link>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </>
+  );
+};
+
 type Node = {
   entry: CommentEntry;
   /** Stored index — what the contract addresses this comment by. */
@@ -283,7 +317,7 @@ const Entry = ({
             </p>
           ) : (
             <p className="text-[length:var(--t-base)] text-[var(--ink)] whitespace-pre-wrap break-words mt-1">
-              {node.body}
+              <Body text={node.body} />
             </p>
           )}
 

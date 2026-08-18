@@ -346,14 +346,38 @@ const StatusBar = () => {
   const chainId = useChainId();
   const { data: block } = useBlockNumber({ watch: true });
 
+  /**
+   * How long since the head moved.
+   *
+   * A block number alone cannot be told apart from a block number that
+   * stopped: both are just a figure. The elapsed time next to it makes a
+   * stalled chain legible seconds before the node-down banner escalates, and
+   * on a real network it is the difference between "quiet" and "broken".
+   */
+  const [seenAt, setSeenAt] = useState(() => Date.now());
+  const [age, setAge] = useState(0);
+
+  useEffect(() => {
+    if (block === undefined) return;
+    setSeenAt(Date.now());
+  }, [block]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setAge(Math.floor((Date.now() - seenAt) / 1000)), 1000);
+    return () => clearInterval(timer);
+  }, [seenAt]);
+
   return (
     <footer className="mt-auto border-t border-[var(--rule)] bg-[var(--sheet)] px-4 sm:px-6 py-2 pb-16 lg:pb-2 flex items-center gap-x-5 gap-y-1 flex-wrap text-[length:var(--t-fine)] text-[var(--ink-3)]">
       <span className="flex items-center gap-1.5">
         <FaCircle className="text-[7px] text-[var(--gain)]" aria-hidden="true" />
         chain {chainId}
       </span>
-      <span className="tabular">
+      <span className="tabular" title={`Head last moved ${age}s ago`}>
         block {block ? block.toString() : "—"}
+        {block !== undefined && age > 20 && (
+          <span style={{ color: age > 60 ? "var(--ochre)" : "var(--ink-4)" }}> · {age}s ago</span>
+        )}
       </span>
       <span className="flex items-center gap-1.5">
         <FaLock className="text-[10px]" aria-hidden="true" />

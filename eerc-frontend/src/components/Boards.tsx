@@ -9,6 +9,7 @@ import { useBoards, useBoardBySlug, type Board } from "../hooks/useBoards";
 import { useBoardFeed } from "../hooks/useBoardFeed";
 import { useRegistryFeed } from "../hooks/useRegistryFeed";
 import { Figure } from "./ui/Panel";
+import { Leaderboard } from "./Leaderboard";
 import { short, since } from "./ui/format";
 
 /**
@@ -156,6 +157,10 @@ export const Boards = () => {
           </div>
         </Panel>
       )}
+
+      <div className="mb-4">
+        <Leaderboard />
+      </div>
 
       {b.boards.length === 0 ? (
         <Notice title="No desks yet" body="The first one sets the tone." />
