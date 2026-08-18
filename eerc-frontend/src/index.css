@@ -1,23 +1,32 @@
 @import "tailwindcss";
 
 /*
- * norr.fun — dark operator theme
+ * norr.fun — tactical telemetry (Avalanche red)
  *
- * Near-black ground, one accent, dense ruled data. The register a data-heavy
- * dark dashboard has used since terminals: black field, tabular figures,
- * a single vivid signal that only ever means one thing.
+ * Archetype: CRT terminal / aerospace HUD. Dark-exclusive, monospace-dominant,
+ * amber phosphor on a near-black field, technical framing devices, high data
+ * density. Committed to this archetype alone -- the Swiss-print mode is the
+ * other half of the same skill and mixing them produces neither.
  *
- * Ground is #0a0b0c, not #000. Pure black crushes the hairlines that carry
- * every table on every surface here, and kills any sense of a lit panel
- * sitting above a field. It reads as black; it just still has structure.
+ * Ground is #08090a, not #000000. Pure black kills the hairlines every table
+ * here is built from and removes any sense of a lit panel above a field. It
+ * reads as black; it still has structure.
  *
- * ONE accent. Green carries "value moving in your favour" and nothing else.
- * The remaining hues are not accents -- they are the three states a financial
- * interface cannot express without colour (waiting, negative, sealed), each
- * held under 70% saturation so none of them competes with the signal.
+ * Avalanche red is the only accent, taken from the chain this runs on. It
+ * carries brand, the primary action, and live state.
  *
- * Kept from the previous system because they were working: a token-only
- * palette, tabular figures, hairline tables, shape-matched skeletons, and the
+ * Market direction is the one place a second hue is unavoidable: a trading
+ * surface cannot express up and down without green and red, and inverting
+ * that convention to protect a palette would cost a user money. So gain is
+ * green, loss is the same red, and the brand accent is distinguished from
+ * loss by form -- a filled control versus a bare figure -- not by hue.
+ *
+ * Glow is used deliberately and narrowly. A generic drop shadow is a tell; a
+ * phosphor bloom on emissive elements is the archetype's own lighting model,
+ * so it is tinted red, applied only to the accent, and never to a panel.
+ *
+ * Kept after audit because they were working: token-only palette, tabular
+ * figures, hairline tables, shape-matched skeletons, rail nav, and the
  * wordmark's chromatic split.
  */
 
@@ -25,44 +34,51 @@
   color-scheme: dark;
 
   /* --- ground ------------------------------------------------------- */
-  --snow: #0a0b0c;
-  --snow-sunk: #060708;
-  --sheet: #101113;
-  --sheet-raised: #17191c;
+  --snow: #08090a;
+  --snow-sunk: #050607;
+  --sheet: #0e1013;
+  --sheet-raised: #15181c;
 
   /* --- ink ---------------------------------------------------------- */
-  --ink: #f2f4f5;
-  --ink-2: #a8b0b6;
-  --ink-3: #767e85;
-  --ink-4: #4e565c;
+  /* Warm-tinted, so text sits in the same light as the phosphor. */
+  --ink: #ece9e3;
+  --ink-2: #a3a099;
+  --ink-3: #8d8a82;
+  --ink-4: #4f4d48;
 
   /* --- rules -------------------------------------------------------- */
-  --rule: #212427;
-  --rule-strong: #33383c;
+  --rule: #22262b;
+  --rule-strong: #3a4048;
 
-  /* --- the accent --------------------------------------------------- */
-  /* One accent, and it means one thing: value moving in your favour. */
-  --falu: #3fcf8a;
-  --falu-deep: #2a9e68;
-  --falu-wash: #10241b;
+  /* --- the accent: Avalanche red ------------------------------------ */
+  --falu: #e84142;
+  --falu-bright: #ff5c5d;
+  --falu-deep: #a52a2b;
+  --falu-wash: #2b1011;
+  --glow: 0 0 12px rgba(232, 65, 66, 0.30);
 
-  /* --- states, not accents ------------------------------------------ */
-  --lichen: #3fcf8a;
-  --lichen-wash: #10241b;
+  /* --- states ------------------------------------------------------- */
+  /* Live / held / settled all ride the accent at different values, so the
+     surface stays single-hue outside of market direction. */
+  --lichen: #e84142;
+  --lichen-wash: #2b1011;
 
-  --ochre: #d9a441;
-  --ochre-wash: #2a2113;
+  --ochre: #d98a2b;
+  --ochre-wash: #2a1d08;
 
-  --fjord: #7f8b93;
-  --fjord-wash: #1a1d20;
+  --fjord: #8d8a82;
+  --fjord-wash: #17191c;
 
-  --loss: #e05252;
-  --loss-wash: #2a1414;
+  /* Market direction only. */
+  --gain: #3fcf8a;
+  --gain-wash: #10241b;
+  --loss: #e84142;
+  --loss-wash: #2b1011;
 
-  /* --- radius ------------------------------------------------------- */
-  /* Varied, not uniform: containers soften, controls stay tight. */
-  --r-panel: 10px;
-  --r-control: 6px;
+  /* --- geometry ----------------------------------------------------- */
+  /* Terminals are square. Radius is near-zero and never decorative. */
+  --r-panel: 2px;
+  --r-control: 2px;
 
   /* --- allocation ramp ---------------------------------------------- */
   /* Eight fee buckets share one bar, so they must separate at 4px wide and
@@ -70,14 +86,14 @@
      cold and alternating value, rather than sampling a rainbow: adjacent
      buckets differ in lightness as well as hue, which is what carries the
      distinction for a red-green colour-blind reader. */
-  --cat-creator: #3fcf8a;
-  --cat-partner: #2f9d92;
-  --cat-rewards: #6fd8a8;
-  --cat-marketing: #d9a441;
-  --cat-buyback: #2a9e68;
-  --cat-liquidity: #4a8f9e;
-  --cat-treasury: #767e85;
-  --cat-custom: #4e565c;
+  --cat-creator: #e84142;
+  --cat-partner: #ff8a6b;
+  --cat-rewards: #a52a2b;
+  --cat-marketing: #d98a2b;
+  --cat-buyback: #6e2f33;
+  --cat-liquidity: #6e8b93;
+  --cat-treasury: #8d8a82;
+  --cat-custom: #4f4d48;
 
   /* --- type --------------------------------------------------------- */
   /* System stacks, which an Operate surface is well served by. Character
@@ -99,7 +115,7 @@
   --t-base: 0.9375rem; /* 15px -- body and data */
   --t-lead: 2rem;      /* 32px -- section leads */
 
-  font-family: var(--face-ui);
+  font-family: var(--face-data);
   line-height: 1.45;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -148,17 +164,57 @@ input[type="number"] {
 
 /* Rank by case and tracking, not size. */
 .label {
+  font-family: var(--face-data);
   font-size: var(--t-fine);
   text-transform: uppercase;
-  letter-spacing: 0.09em;
+  /* Generous tracking simulates a terminal matrix rather than set type. */
+  letter-spacing: 0.14em;
   color: var(--ink-3);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .lead {
   font-size: var(--t-lead);
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+/* Technical framing: corner ticks, the HUD's own device for bounding a
+   region. Drawn with borders on pseudo-elements so they cost no markup and
+   never intercept a pointer. */
+.hud {
+  position: relative;
+}
+
+.hud::before,
+.hud::after {
+  content: "";
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-color: var(--falu);
+  border-style: solid;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.hud::before {
+  top: -1px;
+  left: -1px;
+  border-width: 1px 0 0 1px;
+}
+
+.hud::after {
+  bottom: -1px;
+  right: -1px;
+  border-width: 0 1px 1px 0;
+}
+
+/* Phosphor bloom, for emissive elements only. */
+.emissive {
+  text-shadow: 0 0 10px rgba(232, 65, 66, 0.38);
 }
 
 /* Reversal: the timetable's device for top-rank without a bigger size. */

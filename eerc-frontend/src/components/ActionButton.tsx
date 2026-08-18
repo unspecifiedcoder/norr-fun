@@ -12,7 +12,7 @@ import React from 'react'; interface ActionButtonProps { onClick: () => void; ch
  */
 export const ActionButton = ({ onClick, children, disabled = false, tone = 'primary', type = 'button',
 }: ActionButtonProps) => { const base =
-    'px-4 py-2 rounded-[var(--r-control)] font-bold text-[length:var(--t-fine)] uppercase tracking-[0.09em] ' +
+    'px-4 py-2 rounded-[var(--r-control)] font-bold tracking-[0.14em] text-[length:var(--t-fine)] uppercase tracking-[0.09em] ' +
     'inline-flex items-center justify-center gap-2 border transition-colors ' +
     'disabled:cursor-not-allowed'; const tones = { primary:
       'bg-[var(--ink)] text-[var(--sheet-raised)] border-[var(--ink)] ' +

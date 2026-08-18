@@ -54,7 +54,7 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
   return (
     <>
       <header className="mb-6">
-        <h1 className="text-[length:var(--t-lead)] font-bold tracking-tight">Raises</h1>
+        <h1 className="lead">Raises</h1>
         <p className="text-[length:var(--t-base)] text-[var(--ink-3)] mt-1 max-w-2xl">
           Sealed contribution rounds. What each backer puts in stays encrypted;
           the split, the tally and every claim are public.
@@ -145,7 +145,7 @@ const Row = ({ row }: { row: FeedRow }) => {
   return (
     <Link
       to={`/raise/${launch.ido}`}
-      className="block bg-[var(--sheet)] border border-[var(--rule)] rounded-[var(--r-panel)] p-5 hover:border-[var(--rule)] hover:bg-[var(--sheet)] transition-colors focus:outline-none"
+      className="hud block bg-[var(--sheet)] border border-[var(--rule)] rounded-[var(--r-panel)] p-5 hover:border-[var(--rule)] hover:bg-[var(--sheet)] transition-colors focus:outline-none"
     >
       <div className="flex items-start gap-4">
         <div className="w-11 h-11  bg-[var(--fjord-wash)] border border-[var(--rule)] grid place-items-center shrink-0 text-[length:var(--t-fine)] font-bold">
@@ -255,7 +255,7 @@ const Headline = ({
 }) => (
   <div className="bg-[var(--sheet)] border border-[var(--rule)]  p-3.5">
     <p className="text-[length:var(--t-fine)] uppercase tracking-wider text-[var(--ink-3)]">{label}</p>
-    <p className={`text-[length:var(--t-base)] font-bold mt-1 tabular truncate ${accent}`} title={value}>{value}</p>
+    <p className={`text-[length:var(--t-base)] font-bold mt-1 tabular truncate emissive ${accent}`} title={value}>{value}</p>
   </div>
 );
 

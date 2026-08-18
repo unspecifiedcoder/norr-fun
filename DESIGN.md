@@ -5,29 +5,37 @@
 The system norr.fun commits to. Change it here first; anything that drifts from
 this is a bug, not a variation.
 
-## The direction — dark operator
+## The direction — tactical telemetry
 
-Near-black ground, one accent, dense ruled data. The register a data-heavy dark
-dashboard has used since terminals: black field, tabular figures, and a single
-vivid signal that only ever means one thing.
+CRT terminal / aerospace HUD. Dark-exclusive, monospace-dominant, Avalanche red
+on a near-black field, technical framing devices, high data density.
 
-Every surface is **Operate**: someone completing a task with money attached.
-There is no marketing page. Expression never outranks the task, state, or a
-familiar affordance — brand lives in precise details.
+Committed to this archetype alone. The industrial-brutalist skill offers two
+modes — Swiss industrial print and tactical telemetry — and says to pick one.
+Telemetry is the fit: this is a dense operator surface for a launch platform on
+Avalanche, not an editorial page.
 
-**Ground is `#0a0b0c`, not `#000000`.** Pure black crushes the hairlines that
-carry every table on every surface here, and removes any sense of a lit panel
-sitting above a field. It reads as black; it just still has structure.
+**Ground is `#08090a`, not `#000000`.** Pure black kills the hairlines every
+table here is built from and removes any sense of a lit panel above a field. It
+reads as black; it still has structure.
 
-**One accent.** Green means value moving in your favour, and nothing else. The
-remaining hues are not accents — they are the three states a financial
-interface cannot express without colour (waiting, negative, sealed), each held
-under 70% saturation so none competes with the signal.
+**Avalanche red `#e84142` is the only accent**, taken from the chain this runs
+on. It carries brand, the primary action, and live state.
 
-**Preserved from the previous system** because the audit found them working: a
-token-only palette (which is why a full retheme is a token edit, not a
-rewrite), tabular figures, hairline tables, shape-matched skeletons, the rail
-nav, and the wordmark's chromatic split.
+**The one unavoidable second hue is market direction.** A trading surface
+cannot express up and down without green and red, and inverting that convention
+to protect a palette would cost a user money. So gain is green, loss is the same
+red, and the accent is distinguished from loss by *form* — a filled control
+versus a bare figure — not by hue.
+
+**Glow is narrow and deliberate.** A generic drop shadow is a tell; a phosphor
+bloom is this archetype's own lighting model. It is tinted red, applied only to
+the accent, never to a panel.
+
+**Preserved after audit** because they were working: the token-only palette
+(which is why each retheme has been a token edit, not a rewrite), tabular
+figures, hairline tables, shape-matched skeletons, the rail nav, and the
+wordmark's chromatic split.
 
 ## Color
 
@@ -36,27 +44,31 @@ never decoration — a hue on this surface always means something.
 
 | Token | Value | Role |
 |---|---|---|
-| `--snow` | `#0a0b0c` | page ground |
-| `--snow-sunk` | `#060708` | input wells |
-| `--sheet` | `#101113` | panels |
-| `--sheet-raised` | `#17191c` | one level above a panel |
-| `--ink` … `--ink-4` | `#f2f4f5` → `#4e565c` | text, four steps |
-| `--rule` | `#212427` | hairlines; the structural element |
-| `--falu` | `#3fcf8a` | **the** accent — value in your favour |
-| `--ochre` | `#d9a441` | waiting, pending, held |
-| `--loss` | `#e05252` | negative movement |
-| `--fjord` | `#7f8b93` | sealed / neutral state |
+| `--snow` | `#08090a` | page ground |
+| `--snow-sunk` | `#050607` | input wells |
+| `--sheet` | `#0e1013` | panels |
+| `--sheet-raised` | `#15181c` | one level above a panel |
+| `--ink` … `--ink-4` | `#ece9e3` → `#4f4d48` | text, warm-tinted, four steps |
+| `--rule` | `#22262b` | hairlines; the structural element |
+| `--falu` | `#e84142` | **the** accent — Avalanche red |
+| `--falu-bright` | `#ff5c5d` | hover on the accent |
+| `--gain` | `#3fcf8a` | market direction, up |
+| `--loss` | `#e84142` | market direction, down |
 
-**Radius is varied, not uniform** — `--r-panel` 10px for containers,
-`--r-control` 6px for controls. Uniform radius on everything is a tell.
+**Geometry is square** — `--r-panel` and `--r-control` are both 2px. Terminals
+do not round their corners.
 
-**Allocation ramp** (`--cat-*`): eight buckets stepped through one hue family by
-value rather than eight competing hues, so they separate at 4px wide, in
-greyscale, and for red-green colour-blind readers.
+**HUD framing.** `.hud` draws corner ticks via pseudo-elements, so the device
+costs no markup and never intercepts a pointer. `.emissive` applies the
+phosphor bloom to live figures.
 
-**Measured contrast** (all AA or better): ink on ground 17.9:1 · ink-2 8.9:1 ·
-ink-3 4.8:1 · accent on ground 9.9:1 · button text on accent 9.6:1 · ochre
-8.4:1 · loss 5.0:1.
+**Measured contrast, all AA or better** (lowest 4.78:1): ink 16.5:1 · ink-2
+7.6:1 · ink-3 5.8:1 on ground and 5.5:1 on panel · red 5.0:1 on ground · gain
+9.5:1.
+
+**Button foreground is dark ink, not white.** White on Avalanche red measures
+3.99:1, under AA — the fix belongs on the foreground, not on a brand colour
+nobody would recognise.
 
 ## Type
 
