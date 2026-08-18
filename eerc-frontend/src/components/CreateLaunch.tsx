@@ -15,6 +15,7 @@ import { useCreateLaunch, CATEGORIES, type Category, type DeployStep } from "../
 import { useBoards } from "../hooks/useBoards";
 import { useRegistryFeed } from "../hooks/useRegistryFeed";
 import { usePromotion, type Tier } from "../hooks/usePromotion";
+import { useDeployCost } from "../hooks/useDeployCost";
 import { short, compact } from "./ui/format";
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -63,6 +64,7 @@ export const CreateLaunch = ({
   const { address } = useAccount();
   const promo = usePromotion(c.deployed?.ido);
   const [plan, setPlan] = useState<Tier | null>(null);
+  const deployCost = useDeployCost(c.draft.supply, c.isConnected);
 
   const instant = mode === "instant";
   const first = c.draft.splits[0];
@@ -83,6 +85,55 @@ export const CreateLaunch = ({
     });
     // Only re-runs when the wallet changes; c.setSplit is stable.
   }, [instant, address, first?.id]);
+
+  /**
+   * Problems the contract will not catch.
+   *
+   * The registry enforces that shares total 100% and that a desk gets its
+   * minimum. It does not care whether the same wallet appears twice, whether
+   * a share is zero, or whether an address is the burn address — all of which
+   * deploy happily and are discovered later, when the money has already been
+   * routed. Cautions, not blocks: each is legal and occasionally deliberate.
+   */
+  const splitWarnings = (() => {
+    const list: string[] = [];
+    const seen = new Map<string, number>();
+    for (const sp of c.draft.splits) {
+      const addr = sp.recipient.trim().toLowerCase();
+      if (!/^0x[a-f0-9]{40}$/.test(addr)) continue;
+      seen.set(addr, (seen.get(addr) ?? 0) + 1);
+      if (addr === "0x0000000000000000000000000000000000000000") {
+        list.push("One share goes to the zero address. Anything sent there is unrecoverable.");
+      }
+      if (addr === "0x000000000000000000000000000000000000dead") {
+        list.push("One share goes to the burn address.");
+      }
+    }
+    for (const [addr, count] of seen) {
+      if (count > 1) {
+        list.push(
+          `${short(addr)} appears ${count} times. That works, but the two shares are easier to read as one.`,
+        );
+      }
+    }
+    if (c.draft.splits.some((sp) => Number.parseFloat(sp.percent) === 0)) {
+      list.push("A share is set to 0%. That recipient will never be able to withdraw anything.");
+    }
+    return [...new Set(list)];
+  })();
+
+  /**
+   * A raise this creator has already published under the same name.
+   *
+   * Redeploying because a first attempt failed is normal; publishing the same
+   * name twice by accident is not, and the feed makes both look identical.
+   */
+  const duplicate = feedRows.find(
+    (r) =>
+      c.draft.name.trim().length > 2 &&
+      r.launch.name.trim().toLowerCase() === c.draft.name.trim().toLowerCase() &&
+      r.launch.creator.toLowerCase() === (address ?? "").toLowerCase(),
+  );
 
   const chosenDesk = boards.find((b) => b.id === c.draft.boardId);
   const allocated = c.totalBps / 100;
@@ -148,6 +199,12 @@ export const CreateLaunch = ({
                     onChange={(e) => c.update("name", e.target.value)}
                     placeholder="Northern Lights"
                   />
+                  {duplicate && (
+                    <span className="block text-[length:var(--t-fine)] text-[var(--ochre)] mt-1.5">
+                      You already published a raise with this name. Deploying again is
+                      fine — the feed will show both.
+                    </span>
+                  )}
                 </Field>
                 <Field label="Ticker" required>
                   <StyledInput
@@ -337,6 +394,20 @@ export const CreateLaunch = ({
               ))}
             </div>
 
+            {splitWarnings.length > 0 && (
+              <ul className="mt-3 space-y-1">
+                {splitWarnings.map((w) => (
+                  <li
+                    key={w}
+                    className="text-[length:var(--t-fine)] text-[var(--ochre)] flex items-start gap-2"
+                  >
+                    <FaExclamationTriangle className="mt-0.5 shrink-0 text-[9px]" />
+                    {w}
+                  </li>
+                ))}
+              </ul>
+            )}
+
             <div className="flex items-center justify-between gap-4 mt-3 flex-wrap">
               <button
                 onClick={c.addSplit}
@@ -511,6 +582,15 @@ export const CreateLaunch = ({
               Four signatures: token, fee router, sale contract, then publishing
               it to the feed.
             </p>
+
+            {deployCost.available && (
+              <p className="text-[length:var(--t-fine)] text-[var(--ink-4)] mt-1.5 tabular">
+                About {Number(deployCost.ether).toFixed(4)} in gas at the current
+                fee — {(Number(deployCost.gas) / 1_000_000).toFixed(1)}M for the three
+                contracts. Publishing to the registry is on top and cannot be
+                estimated until they exist.
+              </p>
+            )}
           </Panel>
 
           <Panel title="Applied settings">
