@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccount, useChainId, usePublicClient, useWalletClient } from "wagmi";
 import { parseUnits } from "viem";
 import {
@@ -164,6 +164,77 @@ export function useCreateLaunch() {
     }
   }, [draft, draftKey]);
 
+  /**
+   * Contracts already deployed by a run that failed later.
+   *
+   * A four-transaction deploy that fails on the fourth has still spent real
+   * gas on the first three, and the revert message already told the creator
+   * they were reusable — while nothing actually reused them, so the next
+   * attempt silently paid for all four again.
+   *
+   * Held per chain and cleared once a raise is published or the draft's shape
+   * changes in a way that would invalidate them: the token is bound to a
+   * supply and the router to a split, so reusing either after those change
+   * would deploy a raise that does not match the form.
+   */
+  const partialKey = `norr.launch.partial.${chainId}`;
+
+  const [partial, setPartial] = useState<Partial<Record<"token" | "router" | "ido", string>>>(() => {
+    try {
+      return JSON.parse(window.localStorage.getItem(partialKey) ?? "{}");
+    } catch {
+      return {};
+    }
+  });
+
+  const rememberPartial = useCallback(
+    (next: Partial<Record<"token" | "router" | "ido", string>>) => {
+      setPartial(next);
+      try {
+        if (Object.keys(next).length) {
+          window.localStorage.setItem(partialKey, JSON.stringify(next));
+        } else {
+          window.localStorage.removeItem(partialKey);
+        }
+      } catch {
+        /* without storage a retry simply redeploys, as it did before */
+      }
+    },
+    [partialKey],
+  );
+
+  /**
+   * Each contract is invalidated by the thing it actually encodes.
+   *
+   * The token is bound to the supply, the router to the split, and the sale
+   * references both by address — so the sale falls with either. Discarding
+   * all three whenever anything changed was the safe version of this and also
+   * the useless one: the common case is a deploy rejected by a desk's terms,
+   * where the fix is the split and the token is still perfectly good.
+   */
+  const supplyShape = draft.supply;
+  const splitShape = draft.splits
+    .map((sp) => `${sp.recipient}:${sp.percent}:${sp.category}:${sp.label}`)
+    .join(",");
+  const lastSupply = useRef(supplyShape);
+  const lastSplit = useRef(splitShape);
+
+  useEffect(() => {
+    const supplyChanged = lastSupply.current !== supplyShape;
+    const splitChanged = lastSplit.current !== splitShape;
+    lastSupply.current = supplyShape;
+    lastSplit.current = splitShape;
+    if (!supplyChanged && !splitChanged) return;
+    if (!Object.keys(partial).length) return;
+
+    const next = { ...partial };
+    if (supplyChanged) delete next.token;
+    if (splitChanged) delete next.router;
+    // The sale contract is constructed against the other two.
+    if (supplyChanged || splitChanged) delete next.ido;
+    rememberPartial(next);
+  }, [supplyShape, splitShape, partial, rememberPartial]);
+
   const [steps, setSteps] = useState<DeployStep[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -242,12 +313,20 @@ export function useCreateLaunch() {
     ];
     setSteps(initial);
 
+    // Reused within one run, so the addresses survive a mid-run failure.
+    const reused: Partial<Record<"token" | "router" | "ido", string>> = { ...partial };
+
     const deployOne = async (
-      key: string,
+      key: "token" | "router" | "ido",
       abi: readonly unknown[],
       bytecode: `0x${string}`,
       args: readonly unknown[],
     ) => {
+      const already = reused[key];
+      if (already) {
+        mark(key, { status: "done", detail: `${already} (reused)` });
+        return already as `0x${string}`;
+      }
       mark(key, { status: "active" });
       const hash = await walletClient.deployContract({
         abi: abi as never,
@@ -259,6 +338,8 @@ export function useCreateLaunch() {
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       if (!receipt.contractAddress) throw new Error(`${key}: no contract address in receipt`);
       mark(key, { status: "done", detail: receipt.contractAddress });
+      reused[key] = receipt.contractAddress;
+      rememberPartial({ ...reused });
       return receipt.contractAddress;
     };
 
@@ -317,7 +398,9 @@ export function useCreateLaunch() {
       mark("register", { status: "done" });
 
       setDeployed({ projectToken, feeRouter, ido });
-      // Shipped: the draft has become a raise and should not reappear.
+      // Shipped: the draft has become a raise, and the partial contracts are
+      // no longer partial.
+      rememberPartial({});
       try {
         window.localStorage.removeItem(draftKey);
       } catch {
@@ -332,9 +415,11 @@ export function useCreateLaunch() {
     } finally {
       setBusy(false);
     }
-  }, [ready, walletClient, publicClient, registry, existing, address, draft, draftKey]);
+  }, [ready, walletClient, publicClient, registry, existing, address, draft, draftKey, partial, rememberPartial]);
 
   return {
+    /** Contracts a previous failed attempt already paid for. */
+    resumable: partial,
     draft,
     update,
     setSplit,

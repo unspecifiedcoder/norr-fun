@@ -583,6 +583,18 @@ export const CreateLaunch = ({
               it to the feed.
             </p>
 
+            {/* A previous attempt that failed late already paid for these. */}
+            {Object.keys(c.resumable).length > 0 && !c.deployed && (
+              <p className="text-[length:var(--t-fine)] text-[var(--ochre)] mt-3 flex items-start gap-2">
+                <FaExclamationTriangle className="mt-0.5 shrink-0" />
+                {Object.keys(c.resumable).length} of the three contracts are already
+                deployed from an earlier attempt and will be reused rather than paid
+                for again. Changing the supply replaces the token; changing the split
+                replaces the router; either replaces the sale contract, which is built
+                against both.
+              </p>
+            )}
+
             {deployCost.available && (
               <p className="text-[length:var(--t-fine)] text-[var(--ink-4)] mt-1.5 tabular">
                 About {Number(deployCost.ether).toFixed(4)} in gas at the current
