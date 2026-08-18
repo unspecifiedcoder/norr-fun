@@ -225,13 +225,25 @@ npx hardhat run scripts/ido/06_multi_claim_and_verify.ts --network localhost
 ---
 ## 📡 Deployments
 
-Current live deployment of **norr.fun IDO** for `MPT` token:
+**Nothing is deployed to Avalanche mainnet.** An earlier version of this
+section linked two Snowtrace (mainnet) addresses as a "current live
+deployment"; `eth_getCode` returns `0x` for both on the C-Chain, so the claim
+was wrong. Those two contracts exist on **Fuji**, and the rest of the protocol
+lives only on a **local 31337 node**.
 
-- **Project Token (MPT)**: [`0xa4589D893d4Dc98d680337832b6a9593bF2fA9cd`](https://snowtrace.io/address/0xa4589D893d4Dc98d680337832b6a9593bF2fA9cd)  
-- **IDO Contract**: [`0x24ea34EAffB7E17d02fe05fbF12351bCC670573b`](https://snowtrace.io/address/0x24ea34EAffB7E17d02fe05fbF12351bCC670573b)  
-- **Vault EOA** (receiving encrypted TEST → allocations): `0xF6475Ba5D26Bd817afAc3ded9b8018bEaf7Acf9A`
+| Piece | Where it lives | Recorded in |
+|---|---|---|
+| ProjectToken (MPT) `0xa4589D89...F2fA9cd` | Fuji | this table |
+| IDO `0x24ea34EA...C670573b` | Fuji | this table |
+| LaunchRegistry, BoardRegistry, LaunchComments, SocialGraph, Promotion | local 31337 | `registry-31337.json` |
+| FeeRouter, IDO, ProjectToken, contribution asset | local 31337 | `launch-31337.json` |
+| BondingCurve / PairFactory | local 31337 | `market-31337.json` |
+| EncryptedERC, Registrar, verifiers | local 31337 | `eerc-31337.json` |
 
----
+The frontend registers only chain 31337 in `src/contracts/config.ts`. On Fuji
+it reports that no registry is deployed rather than showing an empty feed.
+Deploying there needs a funded key: the one in `.env` is Hardhat's
+publicly-documented test key and holds 0 AVAX on Fuji.
 
 ## 🔧 Troubleshooting
 

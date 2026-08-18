@@ -14,6 +14,29 @@ const DEFAULT_RPC = "http://127.0.0.1:8545";
 
 type RequestArgs = { method: string; params?: unknown[] };
 
+const isHex = (v: unknown): v is string =>
+  typeof v === "string" && /^0x[0-9a-fA-F]*$/.test(v);
+
+/**
+ * Hex-encode a personal_sign payload.
+ *
+ * Hardhat's `personal_sign` rejects a non-hex message outright -- "expected a
+ * valid hex string" -- while viem passes a plain string straight through for
+ * a string message. Every signature-derived flow in this app therefore failed
+ * under the dev wallet while working fine against a real extension, which is
+ * the worst kind of difference for a development tool to have. Encoding here
+ * makes the two behave the same.
+ */
+const toHexMessage = (value: unknown): string => {
+  if (isHex(value)) return value;
+  const text = typeof value === "string" ? value : String(value);
+  let out = "0x";
+  for (const byte of new TextEncoder().encode(text)) {
+    out += byte.toString(16).padStart(2, "0");
+  }
+  return out;
+};
+
 const createDevWallet = (rpcUrl: string, accountIndex: number) => {
   let requestId = 0;
   const listeners = new Map<string, Set<(...args: unknown[]) => void>>();
@@ -70,6 +93,16 @@ const createDevWallet = (rpcUrl: string, accountIndex: number) => {
           return null;
         case "wallet_requestPermissions":
           return [{ parentCapability: "eth_accounts" }];
+        case "personal_sign": {
+          // EIP-191 order is [data, address]; the node needs data as hex.
+          const [data, account] = params as [unknown, unknown];
+          return rpc("personal_sign", [toHexMessage(data), account]);
+        }
+        case "eth_sign": {
+          // The legacy order is the other way round: [address, data].
+          const [account, data] = params as [unknown, unknown];
+          return rpc("eth_sign", [account, toHexMessage(data)]);
+        }
         default:
           return rpc(method, params as unknown[]);
       }

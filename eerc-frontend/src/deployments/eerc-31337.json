@@ -1,0 +1,10 @@
+{
+  "chainId": 31337,
+  "note": "Written by scripts/converter/02_deploy-converter.ts. The label here is the chain id, not the network name the script was invoked with -- these addresses were verified to hold code on 31337 and nowhere else.",
+  "encryptedERC": "0x1fA02b2d6A771842690194Cf62D91bdd92BfE28d",
+  "registrar": "0x5081a39b8A5f0E35a8D959395a630b68B74Dd30f",
+  "erc20": "0x162A433068F51e18b7d13932F27e66a3f99E6890",
+  "isConverter": true,
+  "decimals": 2,
+  "symbol": "TEST"
+}

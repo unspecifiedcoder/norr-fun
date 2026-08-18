@@ -8,7 +8,7 @@ import { StyledInput } from "./StyledIntput";
 import { useBoards, useBoardBySlug, type Board } from "../hooks/useBoards";
 import { useBoardFeed } from "../hooks/useBoardFeed";
 import { useRegistryFeed } from "../hooks/useRegistryFeed";
-import { short, ago } from "./ui/format";
+import { short, since } from "./ui/format";
 
 /**
  * The desk index.
@@ -202,7 +202,7 @@ const DeskCard = ({ board, raises }: { board: Board; raises: number }) => (
         <FaColumns className="text-[10px]" /> {raises} {raises === 1 ? "raise" : "raises"}
       </span>
       <span className="ml-auto text-[var(--ink-4)]">
-        opened {ago(Number(board.createdAt))} ago
+        opened {since(Number(board.createdAt))}
       </span>
     </div>
   </Link>

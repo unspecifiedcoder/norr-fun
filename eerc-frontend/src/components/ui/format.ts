@@ -57,6 +57,18 @@ export const ago = (unixSeconds: number | bigint): string => {
   return `${Math.floor(s / 2592000)}mo`;
 };
 
+/**
+ * The same elapsed time as a complete phrase.
+ *
+ * `ago()` returns a bare magnitude so it can sit in a table column;
+ * interpolating that into "opened {ago} ago" produces "opened just now ago".
+ * This is what call sites in running prose want.
+ */
+export const since = (unixSeconds: number | bigint): string => {
+  const a = ago(unixSeconds);
+  return a === "just now" ? "just now" : a + " ago";
+};
+
 /** A signed percentage, always with its sign, always two places. */
 export const pct = (n: number): string =>
   `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;

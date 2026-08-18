@@ -6,11 +6,17 @@ import "./index.css";
 
 import "@rainbow-me/rainbowkit/styles.css";
 import {
-  getDefaultConfig,
+  connectorsForWallets,
   RainbowKitProvider,
   darkTheme,
 } from "@rainbow-me/rainbowkit";
-import { WagmiProvider, http } from "wagmi";
+import {
+  coinbaseWallet,
+  injectedWallet,
+  metaMaskWallet,
+  walletConnectWallet,
+} from "@rainbow-me/rainbowkit/wallets";
+import { createConfig, WagmiProvider, http } from "wagmi";
 import { avalancheFuji, hardhat } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { installDevWallet } from "./lib/dev-wallet";
@@ -19,9 +25,45 @@ import { installDevWallet } from "./lib/dev-wallet";
 // No-op unless this is a dev build launched with ?devwallet=1.
 installDevWallet();
 
-const config = getDefaultConfig({
-  appName: "norr.fun",
-  projectId: "YOUR_PROJECT_ID", // can be dummy if only MetaMask
+/**
+ * WalletConnect needs a project id from cloud.reown.com, and this repository
+ * has none. The placeholder that used to sit here ("YOUR_PROJECT_ID") did not
+ * disable WalletConnect -- it offered it in the wallet picker and then failed
+ * on selection, which is worse than not offering it. Reading the id from the
+ * environment means the connector appears when a real one is configured and
+ * is absent when it is not.
+ */
+const walletConnectProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID as
+  | string
+  | undefined;
+
+/**
+ * The connector list is assembled by hand rather than taken from
+ * `getDefaultConfig`, which always includes WalletConnect and throws on load
+ * if no project id is set. WalletConnect is therefore offered only when it can
+ * actually work; the injected and Coinbase paths never depended on it.
+ */
+const connectors = connectorsForWallets(
+  [
+    {
+      groupName: "Installed",
+      wallets: [injectedWallet, metaMaskWallet],
+    },
+    {
+      groupName: "More",
+      wallets: walletConnectProjectId
+        ? [coinbaseWallet, walletConnectWallet]
+        : [coinbaseWallet],
+    },
+  ],
+  {
+    appName: "norr.fun",
+    projectId: walletConnectProjectId ?? "",
+  },
+);
+
+const config = createConfig({
+  connectors,
   // hardhat (31337) is included so a launch can be exercised end-to-end against
   // a local node without spending anything on a live network.
   chains: [avalancheFuji, hardhat],

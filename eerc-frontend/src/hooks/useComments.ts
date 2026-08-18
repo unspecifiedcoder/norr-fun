@@ -50,8 +50,19 @@ export function useComments(subject?: string) {
   const tooLong = draft.length > MAX_COMMENT_LENGTH;
   const canPost = isConnected && draft.trim().length > 0 && !tooLong && !busy;
 
-  const post = useCallback(async () => {
-    if (!contract || !publicClient || !subject || !canPost) return;
+  /**
+   * Post the draft, or an explicit body.
+   *
+   * The override exists because a reply has to prepend its threading marker
+   * *to the text being posted*. Setting draft state and calling post() in the
+   * same tick posts the pre-marker draft -- React has not re-rendered, so the
+   * closure still holds the old value, and the reply silently lands as a
+   * top-level comment. Passing the body through makes that impossible.
+   */
+  const post = useCallback(async (bodyOverride?: string) => {
+    const body = (bodyOverride ?? draft).trim();
+    if (!contract || !publicClient || !subject || busy || !isConnected) return;
+    if (body.length === 0 || body.length > MAX_COMMENT_LENGTH) return;
     setBusy(true);
     setStatus("");
     try {
@@ -60,7 +71,7 @@ export function useComments(subject?: string) {
         address: contract,
         abi: launchCommentsAbi,
         functionName: "post",
-        args: [subject as `0x${string}`, draft.trim()],
+        args: [subject as `0x${string}`, body],
       });
       await publicClient.waitForTransactionReceipt({ hash });
       setDraft("");
@@ -72,7 +83,7 @@ export function useComments(subject?: string) {
     } finally {
       setBusy(false);
     }
-  }, [contract, publicClient, subject, draft, canPost, writeContractAsync, refetch]);
+  }, [contract, publicClient, subject, draft, busy, isConnected, writeContractAsync, refetch]);
 
   /**
    * Withdraw your own comment. The entry stays in place so later indices keep

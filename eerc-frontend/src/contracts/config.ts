@@ -1,6 +1,7 @@
 import { IDO__factory, ProjectToken__factory } from "../typechain-types";
 import localLaunch from "../deployments/launch-31337.json";
 import localRegistry from "../deployments/registry-31337.json";
+import localEerc from "../deployments/eerc-31337.json";
 
 export type LaunchSplit = {
   recipient: string;
@@ -59,6 +60,34 @@ export const REGISTRIES: Record<number, RegistryDeployment> = {
 
 export const getRegistry = (chainId?: number): RegistryDeployment | undefined =>
   chainId === undefined ? undefined : REGISTRIES[chainId];
+
+export type EercDeployment = {
+  chainId: number;
+  /** EncryptedERC — the sealed-balance token. */
+  encryptedERC: string;
+  /** Registrar — holds each participant's public key. */
+  registrar: string;
+  /** The public ERC20 that converts into the encrypted one. */
+  erc20: string;
+  isConverter: boolean;
+  decimals: number;
+  symbol: string;
+};
+
+/**
+ * The sealed-balance layer per chain.
+ *
+ * Read from a deployment artifact for the same reason every other address is:
+ * the privacy contracts were previously reachable only by pasting an address
+ * into a text field, which meant the one flow the product exists for could not
+ * be started by anyone who did not already know where it lived.
+ */
+export const EERC: Record<number, EercDeployment> = {
+  [localEerc.chainId]: localEerc as EercDeployment,
+};
+
+export const getEerc = (chainId?: number): EercDeployment | undefined =>
+  chainId === undefined ? undefined : EERC[chainId];
 
 // --- legacy ethers/typechain helpers, kept for the existing script-based flow ---
 

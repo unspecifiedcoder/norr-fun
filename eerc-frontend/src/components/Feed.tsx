@@ -3,11 +3,13 @@ import { Link, useSearchParams } from "react-router-dom";
 import {
   FaPlus, FaSearch, FaBookmark, FaRegBookmark, FaBolt, FaClock,
   FaFire, FaLayerGroup, FaExchangeAlt, FaChartLine, FaLock, FaFlagCheckered,
+  FaBullhorn,
 } from "react-icons/fa";
 import { useSocial } from "../hooks/useSocial";
 import { useRegistryFeed, type FeedRow } from "../hooks/useRegistryFeed";
 import { useProtocolStats } from "../hooks/useProtocolStats";
 import { useCurveSummary } from "../hooks/useCurveSummary";
+import { usePromoted } from "../hooks/usePromoted";
 import { useBoards } from "../hooks/useBoards";
 import { ActionButton } from "./ActionButton";
 import { FeedSkeleton, StatSkeleton } from "./Skeleton";
@@ -15,7 +17,7 @@ import { Avatar } from "./ui/Avatar";
 import { Sparkline } from "./ui/Chart";
 import { Pills, Meter } from "./ui/Controls";
 import { Figure } from "./ui/Panel";
-import { short, compact, price as fmtPrice, pct, ago } from "./ui/format";
+import { short, compact, price as fmtPrice, pct, since } from "./ui/format";
 
 /**
  * The launch feed.
@@ -48,6 +50,7 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
   const feed = useRegistryFeed(lens === "watch" ? "newest" : lens);
   const stats = useProtocolStats();
   const { boards } = useBoards();
+  const promoted = usePromoted(useMemo(() => feed.rows.map((r) => r.launch.ido), [feed.rows]));
 
   const setParam = (key: string, value: string) => {
     const next = new URLSearchParams(params);
@@ -60,14 +63,23 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
   // finds its raise as readily as a typed name.
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return feed.rows;
-    return feed.rows.filter((r) =>
-      [r.launch.name, r.launch.symbol, r.launch.description, r.launch.ido, r.launch.creator]
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
+    const matched = !q
+      ? feed.rows
+      : feed.rows.filter((r) =>
+          [r.launch.name, r.launch.symbol, r.launch.description, r.launch.ido, r.launch.creator]
+            .join(" ")
+            .toLowerCase()
+            .includes(q),
+        );
+
+    // Paid slots ride above the chosen sort rather than replacing it: within
+    // each group the reader's ordering still holds, and every promoted card
+    // is labelled, so placement is visible rather than merely effective.
+    return [...matched].sort(
+      (a, b) =>
+        Number(promoted.isPromoted(b.launch.ido)) - Number(promoted.isPromoted(a.launch.ido)),
     );
-  }, [feed.rows, query]);
+  }, [feed.rows, query, promoted]);
 
   if (!feed.hasRegistry) {
     return (
@@ -160,6 +172,8 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
               key={row.launch.ido}
               row={row}
               desk={boards.find((b) => b.id === row.launch.boardId)?.slug}
+              promoted={promoted.isPromoted(row.launch.ido)}
+              promotedUntil={promoted.until(row.launch.ido)}
             />
           ))}
         </div>
@@ -170,7 +184,17 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
 
 /* ------------------------------------------------------------------ card */
 
-const LaunchCard = ({ row, desk }: { row: FeedRow; desk?: string }) => {
+const LaunchCard = ({
+  row,
+  desk,
+  promoted = false,
+  promotedUntil,
+}: {
+  row: FeedRow;
+  desk?: string;
+  promoted?: boolean;
+  promotedUntil?: number;
+}) => {
   const { launch } = row;
   const social = useSocial({ subject: launch.ido });
   const curve = useCurveSummary(launch.ido);
@@ -179,7 +203,24 @@ const LaunchCard = ({ row, desk }: { row: FeedRow; desk?: string }) => {
   const raised = Number(row.format(row.raised));
 
   return (
-    <article className="card-link hud relative">
+    <article
+      className="card-link hud relative"
+      style={promoted ? { borderColor: "var(--falu-deep)" } : undefined}
+    >
+      {/* Paid placement is stated on the card that bought it. A promoted feed
+          that does not say so is a feed selling its ranking quietly. */}
+      {promoted && (
+        <p
+          className="flex items-center gap-1.5 px-3.5 py-1 border-b border-[var(--rule)] text-[length:var(--t-fine)] uppercase tracking-[0.14em] text-[var(--falu)]"
+          title={
+            promotedUntil
+              ? `Paid slot, runs until ${new Date(promotedUntil * 1000).toLocaleString()}`
+              : undefined
+          }
+        >
+          <FaBullhorn className="text-[9px]" aria-hidden="true" /> promoted
+        </p>
+      )}
       <Link
         to={`/raise/${launch.ido}`}
         className="block p-3.5 focus:outline-none"
@@ -228,7 +269,9 @@ const LaunchCard = ({ row, desk }: { row: FeedRow; desk?: string }) => {
         )}
 
         {/* --- the body differs by what the launch actually has --- */}
-        {curve.exists && curve.fills > 0 ? (
+        {/* One fill draws no line and reports a 0.00% change against itself.
+            Below two, the raise's own progress is the honest thing to show. */}
+        {curve.exists && curve.fills > 1 ? (
           <div className="mt-3">
             <div className="flex items-baseline justify-between gap-3 mb-1">
               <span className="text-[length:var(--t-base)] font-bold tabular emissive text-[var(--ink)]">
@@ -263,7 +306,7 @@ const LaunchCard = ({ row, desk }: { row: FeedRow; desk?: string }) => {
               }
             />
             <p className="text-[length:var(--t-fine)] text-[var(--ink-4)] mt-2">
-              opened {ago(Number(launch.createdAt))} ago · {row.splitCount}{" "}
+              opened {since(Number(launch.createdAt))} · {row.splitCount}{" "}
               {row.splitCount === 1 ? "recipient" : "recipients"}
             </p>
           </div>
@@ -271,7 +314,7 @@ const LaunchCard = ({ row, desk }: { row: FeedRow; desk?: string }) => {
 
         {/* --- footer figures --- */}
         <div className="flex items-center gap-4 mt-3 pt-2.5 border-t border-[var(--rule)] text-[length:var(--t-fine)] text-[var(--ink-3)]">
-          {curve.exists && curve.fills > 0 ? (
+          {curve.exists && curve.fills > 1 ? (
             <>
               <span className="flex items-center gap-1.5 tabular">
                 <FaExchangeAlt className="text-[10px]" aria-hidden="true" />

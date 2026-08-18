@@ -6,7 +6,7 @@ import { Avatar } from "./ui/Avatar";
 import { ActionButton } from "./ActionButton";
 import { useRegistryFeed } from "../hooks/useRegistryFeed";
 import { useSocial } from "../hooks/useSocial";
-import { short, compact, ago } from "./ui/format";
+import { short, compact, since } from "./ui/format";
 
 /**
  * What one address has done on the protocol.
@@ -108,7 +108,7 @@ export const Profile = () => {
                       </span>
                     </span>
                     <span className="block text-[length:var(--t-fine)] text-[var(--ink-3)]">
-                      opened {ago(Number(r.launch.createdAt))} ago · vault{" "}
+                      opened {since(Number(r.launch.createdAt))} · vault{" "}
                       {short(r.launch.feeRouter)}
                     </span>
                   </span>

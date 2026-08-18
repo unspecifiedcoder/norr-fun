@@ -1,9 +1,8 @@
 import { useMemo } from "react";
-import { useChainId, useReadContract } from "wagmi";
+import { useChainId } from "wagmi";
 import { formatUnits } from "viem";
-import { boardRegistryAbi } from "../contracts/abis";
-import { getRegistry } from "../contracts/config";
 import { useRegistryFeed } from "./useRegistryFeed";
+import { useBoards } from "./useBoards";
 
 /**
  * Protocol-wide totals for the masthead.
@@ -14,15 +13,12 @@ import { useRegistryFeed } from "./useRegistryFeed";
  */
 export function useProtocolStats() {
   const chainId = useChainId();
-  const registry = getRegistry(chainId);
   const feed = useRegistryFeed("newest", 100);
 
-  const { data: deskCount } = useReadContract({
-    address: registry?.boards as `0x${string}` | undefined,
-    abi: boardRegistryAbi,
-    functionName: "count",
-    query: { enabled: !!registry },
-  });
+  // Counted from the same read the rail's desk index uses, rather than a
+  // separate count() call. Two sources meant the rail could list a desk the
+  // figure beside it had not counted yet.
+  const boards = useBoards();
 
   return useMemo(() => {
     const raised = feed.rows.reduce((sum, r) => sum + r.raised, 0n);
@@ -41,7 +37,7 @@ export function useProtocolStats() {
     return {
       raises: feed.rows.length,
       open,
-      desks: Number((deskCount as bigint | undefined) ?? 0n),
+      desks: boards.boards.length,
       raised,
       distributed,
       symbol,
@@ -49,5 +45,5 @@ export function useProtocolStats() {
       hasRegistry: feed.hasRegistry,
       chainId,
     };
-  }, [feed.rows, feed.hasRegistry, deskCount, chainId]);
+  }, [feed.rows, feed.hasRegistry, boards.boards.length, chainId]);
 }

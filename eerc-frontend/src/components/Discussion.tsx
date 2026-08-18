@@ -96,13 +96,17 @@ export const Discussion = ({
 
   const parentOf = replyTo !== null ? c.comments.find((_, i) => c.total - 1 - i === replyTo) : null;
 
+  /**
+   * The marker is prepended to the body handed to post(), not written into
+   * draft state first: state does not apply until the next render, so a
+   * post() in the same tick would send the unmarked text and the reply would
+   * land as a top-level comment.
+   */
   const submit = () => {
-    if (replyTo !== null) {
-      // Written into the body before posting, so the thread survives without
-      // this client: anyone reading the chain sees the same structure.
-      c.setDraft(`↪#${replyTo} ${c.draft.replace(MARKER, "")}`);
-    }
-    void c.post().then(() => setReplyTo(null));
+    const text = c.draft.replace(MARKER, "").trim();
+    if (!text) return;
+    const body = replyTo !== null ? `↪#${replyTo} ${text}` : text;
+    void c.post(body).then(() => setReplyTo(null));
   };
 
   return (

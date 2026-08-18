@@ -1,12 +1,7 @@
 import { useEffect } from "react";
 import { Navigate, useLocation, useParams } from "react-router-dom";
 import { useChainId } from "wagmi";
-import { avalancheFuji, hardhat } from "wagmi/chains";
-
-/** URL slug -> chain id. Slugs are stable; ids are the wire value. */
-export const CHAIN_SLUGS: Record<string, number> = { fuji: avalancheFuji.id, local: hardhat.id,
-}; export const slugForChain = (id: number): string =>
-  Object.entries(CHAIN_SLUGS).find(([, v]) => v === id)?.[0] ?? String(id);
+import { CHAIN_SLUGS } from "../lib/chains";
 
 /**
  * Wraps a chain-scoped route so a shared link carries its network.

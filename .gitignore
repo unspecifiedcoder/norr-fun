@@ -20,3 +20,9 @@ temp-register-proof.json
 temp-register-inputs.json
 /deployments
 /generated-types
+
+# Key material. These files hold eERC decryption keys in plaintext; three of
+# them were previously committed and published. Nothing in the app reads them
+# -- they are script output -- so they are ignored rather than relocated.
+**/user-keys*.json
+*.keys.json

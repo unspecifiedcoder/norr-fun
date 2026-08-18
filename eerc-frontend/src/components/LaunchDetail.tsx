@@ -8,11 +8,12 @@ import {
 } from "react-icons/fa";
 import { erc20Abi } from "../contracts/abis";
 import { useLaunchByIdo } from "../hooks/useLaunchByIdo";
+import { useIdo } from "../hooks/useIdo";
 import { useMarket } from "../hooks/useMarket";
 import { useComments } from "../hooks/useComments";
 import { useBoards } from "../hooks/useBoards";
 import { useSocial } from "../hooks/useSocial";
-import { slugForChain } from "./ChainGuard";
+import { slugForChain } from "../lib/chains";
 import { Panel, Chip } from "./ui/Panel";
 import { Tabs, Meter } from "./ui/Controls";
 import { Avatar } from "./ui/Avatar";
@@ -23,6 +24,7 @@ import { IdoClaim } from "./IdoClaim";
 import { Discussion } from "./Discussion";
 import { Holders } from "./Holders";
 import { Promote } from "./Promote";
+import { Contribute } from "./Contribute";
 import { getMarket } from "../hooks/useMarket";
 
 type Tab = "trades" | "comments" | "holders" | "split" | "promote";
@@ -43,6 +45,9 @@ export const LaunchDetail = () => {
   const comments = useComments(ido);
   const { boards } = useBoards();
   const social = useSocial({ subject: ido });
+  const sale = useIdo(
+    launch ? { ido: launch.ido, projectToken: launch.projectToken } : undefined,
+  );
   const [tab, setTab] = useState<Tab>("trades");
 
   const { data: supplyRaw } = useReadContract({
@@ -290,6 +295,11 @@ export const LaunchDetail = () => {
               </>
             )}
           </Panel>
+
+          {/* Contribution comes before trading in the rail because it comes
+              before it in the launch's life: the sealed round settles first,
+              and only then does the distributed token trade. */}
+          <Contribute vault={launch.creator} finalized={sale.finalized} />
 
           {m.exists && <TradePanel m={m} />}
 
