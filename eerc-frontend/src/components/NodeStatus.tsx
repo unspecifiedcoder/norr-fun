@@ -25,7 +25,12 @@ export const NodeStatus = () => {
 
     const probe = async () => {
       try {
-        await client.getBlockNumber();
+        // cacheTime: 0 is the whole point. viem caches getBlockNumber for the
+        // chain's block time by default, so a cached hit answers instantly
+        // without touching the network -- and a probe that never leaves the
+        // browser can never notice the node is gone. This was silently true
+        // until a node actually died and the banner stayed hidden.
+        await client.getBlockNumber({ cacheTime: 0 });
         if (alive) setMisses(0);
       } catch {
         if (alive) setMisses((m) => m + 1);
