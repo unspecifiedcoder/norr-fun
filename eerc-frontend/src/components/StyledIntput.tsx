@@ -1,18 +1,20 @@
-import React from 'react';
+import React from 'react'; type StyledInputProps = React.InputHTMLAttributes<HTMLInputElement>;
 
-interface StyledInputProps {
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  placeholder: string;
-  type?: string;
-}
-
-export const StyledInput = ({ value, onChange, placeholder, type = "text" }: StyledInputProps) => (
+/**
+ * A value field.
+ *
+ * Square, ruled, sunk against the sheet -- the security-printing convention
+ * where a figure sits in a bounded tinted block rather than an outlined pill.
+ * Numeric inputs pick up tabular figures from the global rule so digits do not
+ * shift width as they are typed.
+ */
+export const StyledInput = (props: StyledInputProps) => (
   <input
-    type={type}
-    placeholder={placeholder}
-    value={value}
-    onChange={onChange}
-    className="bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors w-full"
+    {...props} className={
+      'w-full bg-[var(--snow-sunk)] border border-[var(--rule)] px-2.5 py-2 ' +
+      'text-[var(--ink)] placeholder:text-[var(--ink-4)] ' +
+      'focus:border-[var(--ink)] outline-none transition-colors ' +
+      (props.className ?? '')
+    }
   />
 );

@@ -1,19 +1,104 @@
 @import "tailwindcss";
 
 /*
- * norr.fun base styles.
+ * norr.fun — "polar night ledger"
  *
- * This file previously held Vite's starter CSS, which fought the app's design:
- * a prefers-color-scheme:light block flipped the page white, a global `button`
- * rule overrode Tailwind's button utilities, and `body { display:flex;
- * place-items:center }` centred the whole app as a single flex item. The app
- * is deliberately dark-only, so the palette is committed rather than theme-aware.
+ * The world: a records instrument for a sealed sale, read through the northern
+ * winter dark. Fjord-slate ground, snow ink, iron-oxide signal.
+ *
+ * Dark is pinned by the brief. The trap that comes with it is that this
+ * category — and every AI-generated trading UI — ships the same dark: pure
+ * black, one neon accent, glowing edges, rounded glassy cards. This is not
+ * that dark. The ground is a desaturated blue-slate with real hue in it, not
+ * #000; the accent is iron oxide, a pigment rather than a light source; and
+ * nothing glows. Structure is carried by hairline rules and tinted blocks.
+ *
+ * Two disciplines borrowed deliberately:
+ *  - Security printing: a value lives in a bounded, tinted field with a rule
+ *    around it, not floating in a card. Figures are tabular and aligned.
+ *  - Transit-timetable typography: near-single type size. Rank is carried by
+ *    weight, case, reversal and rule -- not by a size ramp. This keeps dense
+ *    tables legible without the heading-soup a size ramp produces.
  */
 
 :root {
   color-scheme: dark;
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
-  line-height: 1.5;
+
+  /* --- ground ------------------------------------------------------- */
+  /* Deep fjord slate, never #000. Pure black is the category default and it
+     also kills the hairlines this system depends on. */
+  --snow: #101a20;
+  --snow-sunk: #0c141a;
+  --sheet: #16222a;
+  --sheet-raised: #1c2b34;
+
+  /* --- ink ---------------------------------------------------------- */
+  /* Snow, carrying a trace of blue so it sits in the same world as the ground. */
+  --ink: #e6edf1;
+  --ink-2: #b3c2cb;
+  --ink-3: #8194a0;
+  --ink-4: #5c6e7a;
+
+  /* --- rules -------------------------------------------------------- */
+  --rule: #2b3a44;
+  --rule-strong: #e6edf1;
+
+  /* --- signal ------------------------------------------------------- */
+  /* Iron oxide, lifted to hold against the dark ground. A pigment, not a
+     neon: it stays under 70% saturation and never glows. */
+  --falu: #c9553a;
+  --falu-deep: #8e3520;
+  --falu-wash: #3a1e17;
+
+  /* Lichen: settled, confirmed, paid. */
+  --lichen: #6aa585;
+  --lichen-wash: #1b2f26;
+
+  /* Ochre: waiting, pending, held. Brass lamplight, not amber neon. */
+  --ochre: #c2a04a;
+  --ochre-wash: #322a15;
+
+  /* Fjord: the sealed state -- this product's signature condition. */
+  --fjord: #6d9fb8;
+  --fjord-wash: #172c37;
+
+  /* --- allocation ramp ---------------------------------------------- */
+  /* Eight fee buckets share one bar, so they must separate at 4px wide and
+     survive greyscale. Built by walking the world's own pigments from warm to
+     cold and alternating value, rather than sampling a rainbow: adjacent
+     buckets differ in lightness as well as hue, which is what carries the
+     distinction for a red-green colour-blind reader. */
+  --cat-creator: #c9553a;
+  --cat-partner: #6d9fb8;
+  --cat-rewards: #6aa585;
+  --cat-marketing: #c2a04a;
+  --cat-buyback: #8e3520;
+  --cat-liquidity: #3f6b7e;
+  --cat-treasury: #8194a0;
+  --cat-custom: #5c6e7a;
+
+  /* --- type --------------------------------------------------------- */
+  /* System stacks, which an Operate surface is well served by. Character
+     comes from case, weight, tracking and rule -- not from a webfont. */
+  --face-data: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --face-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Three steps, each a real jump. The timetable discipline says rank comes
+     from weight, case and rule rather than a size ramp -- but taken literally
+     it produced 10px functional text and five sizes inside a 1.9:1 spread,
+     which is a legibility failure wearing a design principle's clothes. So:
+     few sizes, genuinely separated, and none below the 12px floor. Rank still
+     comes from weight and case; the scale just stops fighting legibility.
+     The lead sits a clear 2x above body rather than nudging it: at 24px the
+     ramp measured 1.9:1 end to end, which reads as three sizes of the same
+     text rather than a hierarchy. A dense sheet needs its one display step to
+     actually announce itself. */
+  --t-fine: 0.75rem;   /* 12px -- tracked uppercase labels, the floor */
+  --t-base: 0.9375rem; /* 15px -- body and data */
+  --t-lead: 2rem;      /* 32px -- section leads */
+
+  font-family: var(--face-ui);
+  line-height: 1.45;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -24,26 +109,103 @@ html,
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #08080c;
-  color: #f3f4f6;
+  background-color: var(--snow);
+  color: var(--ink);
+}
+
+body {
+  font-size: var(--t-base);
 }
 
 #root {
   min-height: 100vh;
 }
 
-/* --- norr.fun wordmark ------------------------------------------------- */
+/* Figures must align down a column and never reflow width as they tick. */
+.tabular,
+input[type="number"] {
+  font-family: var(--face-data);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* --- primitives ------------------------------------------------------ */
+
+/* A bounded value field, after security printing: tint block, ruled edge,
+   label set into the rule rather than floating above it. */
+.field {
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  padding: 0.5rem 0.625rem;
+}
+
+.field--sunk {
+  background: var(--snow-sunk);
+}
+
+/* Rank by case and tracking, not size. */
+.label {
+  font-size: var(--t-fine);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.lead {
+  font-size: var(--t-lead);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Reversal: the timetable's device for top-rank without a bigger size. */
+.reversed {
+  background: var(--ink);
+  color: var(--sheet-raised);
+}
+
+.rule-t { border-top: 1px solid var(--rule); }
+.rule-b { border-bottom: 1px solid var(--rule); }
+.rule-r { border-right: 1px solid var(--rule); }
+
+/* --- state marks ----------------------------------------------------- */
+/* A state is a filled mark in a fixed cell, not a coloured pill floating in
+   space. Filled holds, hollow does not. */
+.mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: var(--t-fine);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  padding: 0.125rem 0.375rem;
+  border: 1px solid currentColor;
+}
+
+.mark--sealed { color: var(--fjord); background: var(--fjord-wash); }
+.mark--held { color: var(--ochre); background: var(--ochre-wash); }
+.mark--settled { color: var(--lichen); background: var(--lichen-wash); }
+.mark--live { color: var(--falu); background: var(--falu-wash); }
+
+/* --- wordmark -------------------------------------------------------- */
 
 .norr-logo {
   display: inline-block;
   line-height: 1;
-  /* Heavy condensed faces, widest-available first. No webfont fetch. */
-  font-family: "Arial Black", "Helvetica Neue", Impact, system-ui, sans-serif;
-  font-weight: 900;
+  /* Heavy condensed faces, widest-available first. No webfont fetch -- the
+     mark must never wait on a network round-trip or flash unstyled.
+     Deliberately not a ubiquitous grotesque: the wordmark is the one place
+     this interface has a voice, and the default UI face has none. */
+  font-family: "Avenir Next Condensed", "Futura Condensed ExtraBold",
+    Impact, "Franklin Gothic Heavy", "Arial Narrow", sans-serif;
+  /* :root disables synthesis so body text never fakes a weight. The mark is
+     the exception: on fallbacks that ship no true italic, the synthesized
+     oblique is what preserves the lean the mark is drawn around. */
+  font-synthesis: style weight;
+  font-weight: 800;
   font-style: italic;
-  letter-spacing: -0.03em;
-  /* Arial Black's own italic is a shallow oblique; skewing adds the extra
-     forward lean the mark is drawn around. */
+  letter-spacing: -0.035em;
   transform: skewX(-6deg);
   user-select: none;
 }
@@ -63,72 +225,49 @@ body {
   pointer-events: none;
 }
 
-.norr-logo__ghost--cyan {
-  color: #22d3ee;
-  transform: translate(-0.055em, 0.022em);
+/* The chromatic split is the mark's identity and stays. Its channels move to
+   this world's pigments; the previous cyan/magenta was the same split every
+   AI-generated dark UI ships. */
+.norr-logo__ghost--a {
+  color: var(--falu);
+  transform: translate(-0.05em, 0.02em);
 }
 
-.norr-logo__ghost--magenta {
-  color: #f0246c;
-  transform: translate(0.055em, -0.022em);
+.norr-logo__ghost--b {
+  color: var(--fjord);
+  transform: translate(0.05em, -0.02em);
 }
 
 .norr-logo__core {
   position: relative;
-  color: #ffffff;
-  /* A tight dark halo keeps the white readable where the ghosts pass under it. */
-  text-shadow:
-    0 0 0.02em rgba(8, 8, 12, 0.9),
-    0 0 0.35em rgba(34, 211, 238, 0.35);
+  color: var(--ink);
 }
 
-/* Periodic channel-tear. Idle most of the cycle, so it reads as a glitch
-   rather than a constant animation. */
 @keyframes norr-logo-tear {
-  0%,
-  92%,
-  100% {
-    transform: translate(-0.055em, 0.022em);
-  }
-  93% {
-    transform: translate(-0.14em, 0.022em);
-  }
-  95% {
-    transform: translate(0.02em, 0.038em);
-  }
-  97% {
-    transform: translate(-0.08em, 0.008em);
-  }
+  0%, 92%, 100% { transform: translate(-0.05em, 0.02em); }
+  93% { transform: translate(-0.13em, 0.02em); }
+  95% { transform: translate(0.02em, 0.036em); }
+  97% { transform: translate(-0.075em, 0.008em); }
 }
 
 @keyframes norr-logo-tear-alt {
-  0%,
-  92%,
-  100% {
-    transform: translate(0.055em, -0.022em);
-  }
-  94% {
-    transform: translate(0.15em, -0.022em);
-  }
-  96% {
-    transform: translate(-0.02em, -0.04em);
-  }
-  98% {
-    transform: translate(0.09em, -0.006em);
-  }
+  0%, 92%, 100% { transform: translate(0.05em, -0.02em); }
+  94% { transform: translate(0.14em, -0.02em); }
+  96% { transform: translate(-0.02em, -0.038em); }
+  98% { transform: translate(0.085em, -0.006em); }
 }
 
-.norr-logo__ghost--cyan {
-  animation: norr-logo-tear 7s steps(1, end) infinite;
-}
-
-.norr-logo__ghost--magenta {
-  animation: norr-logo-tear-alt 7s steps(1, end) infinite;
-}
+.norr-logo__ghost--a { animation: norr-logo-tear 7s steps(1, end) infinite; }
+.norr-logo__ghost--b { animation: norr-logo-tear-alt 7s steps(1, end) infinite; }
 
 @media (prefers-reduced-motion: reduce) {
-  .norr-logo__ghost--cyan,
-  .norr-logo__ghost--magenta {
-    animation: none;
-  }
+  .norr-logo__ghost--a,
+  .norr-logo__ghost--b { animation: none; }
+}
+
+/* --- focus ----------------------------------------------------------- */
+/* One focus treatment everywhere, high contrast against the snow ground. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--falu);
+  outline-offset: 1px;
 }

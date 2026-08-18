@@ -4,7 +4,6 @@ export type Preferences = {
   /** Default slippage tolerance, in percent, prefilled into the trade panel. */
   slippagePct: string;
   /** The animated backdrop is decorative and costs a canvas repaint loop. */
-  showBackdrop: boolean;
   /** Whether the activity feed opens scoped to you or to the whole protocol. */
   activityScope: "mine" | "all";
   /** Collapse long addresses to their ends. */
@@ -13,7 +12,6 @@ export type Preferences = {
 
 export const DEFAULT_PREFERENCES: Preferences = {
   slippagePct: "1",
-  showBackdrop: true,
   activityScope: "mine",
   abbreviateAddresses: true,
 };

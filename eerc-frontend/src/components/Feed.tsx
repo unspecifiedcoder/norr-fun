@@ -54,8 +54,8 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
   return (
     <>
       <header className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Raises</h1>
-        <p className="text-sm text-gray-500 mt-1 max-w-2xl">
+        <h1 className="text-[length:var(--t-lead)] font-bold tracking-tight">Raises</h1>
+        <p className="text-[length:var(--t-base)] text-[var(--ink-3)] mt-1 max-w-2xl">
           Sealed contribution rounds. What each backer puts in stays encrypted;
           the split, the tally and every claim are public.
         </p>
@@ -65,11 +65,11 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
           ) : (
             <>
           <Headline label="Raises" value={String(stats.raises)} />
-          <Headline label="Accepting funds" value={String(stats.open)} accent="text-amber-400" />
+          <Headline label="Accepting funds" value={String(stats.open)} accent="text-[var(--ochre)]" />
           <Headline
             label="Raised in total"
             value={stats.raised > 0n ? `${stats.compact(stats.raised)} ${stats.symbol}` : "—"}
-            accent="text-emerald-400"
+            accent="text-[var(--lichen)]"
           />
           <Headline
             label="Paid out"
@@ -86,10 +86,10 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
             <button
               key={s.key}
               onClick={() => setSort(s.key)}
-              className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+              className={`px-3 py-1.5 text-[length:var(--t-fine)]  border transition-colors ${
                 sort === s.key
-                  ? "border-gray-500 bg-white/10 text-white"
-                  : "border-gray-700 text-gray-500 hover:text-gray-200 hover:border-gray-600"
+                  ? "border-[var(--rule)] bg-[var(--snow-sunk)] text-[var(--ink)]"
+                  : "border-[var(--rule)] text-[var(--ink-3)] hover:text-[var(--ink)] hover:border-[var(--rule)]"
               }`}
             >
               {s.label}
@@ -98,16 +98,16 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <label className="relative">
-            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-600" />
+            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[length:var(--t-fine)] text-[var(--ink-3)]" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Find a raise or paste an address"
               aria-label="Search raises"
-              className="bg-gray-800 border border-gray-600 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-blue-500 w-64 max-w-full"
+              className="bg-[var(--snow-sunk)] border border-[var(--rule)]  pl-8 pr-3 py-1.5 text-[length:var(--t-fine)] text-[var(--ink)] placeholder-gray-500 outline-none  w-64 max-w-full"
             />
           </label>
-          <p className="text-xs text-gray-500">
+          <p className="text-[length:var(--t-fine)] text-[var(--ink-3)]">
             {feed.total} {feed.total === 1 ? "raise" : "raises"} on chain {feed.chainId}
           </p>
         </div>
@@ -145,17 +145,17 @@ const Row = ({ row }: { row: FeedRow }) => {
   return (
     <Link
       to={`/raise/${launch.ido}`}
-      className="block bg-black/40 border border-gray-700 rounded-xl p-5 hover:border-gray-500 hover:bg-black/60 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+      className="block bg-[var(--sheet)] border border-[var(--rule)]  p-5 hover:border-[var(--rule)] hover:bg-[var(--sheet)] transition-colors focus:outline-none"
     >
       <div className="flex items-start gap-4">
-        <div className="w-11 h-11 rounded-lg bg-gradient-to-br from-cyan-500/25 to-fuchsia-500/25 border border-gray-600 grid place-items-center shrink-0 text-[11px] font-bold">
+        <div className="w-11 h-11  bg-[var(--fjord-wash)] border border-[var(--rule)] grid place-items-center shrink-0 text-[length:var(--t-fine)] font-bold">
           {launch.symbol.slice(0, 4)}
         </div>
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-bold text-gray-100">{launch.name}</span>
-            <span className="text-xs text-gray-500">{launch.symbol}</span>
+            <span className="font-bold text-[var(--ink)]">{launch.name}</span>
+            <span className="text-[length:var(--t-fine)] text-[var(--ink-3)]">{launch.symbol}</span>
             {row.finalized ? (
               <Tag tone="emerald">tally published</Tag>
             ) : (
@@ -172,22 +172,22 @@ const Row = ({ row }: { row: FeedRow }) => {
                 }}
                 disabled={social.busy}
                 aria-label={social.isSaved ? "Remove from watchlist" : "Save to watchlist"}
-                className="ml-auto text-gray-600 hover:text-amber-400 transition-colors disabled:opacity-40"
+                className="ml-auto text-[var(--ink-3)] hover:text-[var(--ochre)] transition-colors disabled:opacity-40"
               >
                 {social.isSaved ? (
-                  <FaBookmark className="text-amber-400 text-xs" />
+                  <FaBookmark className="text-[var(--ochre)] text-[length:var(--t-fine)]" />
                 ) : (
-                  <FaRegBookmark className="text-xs" />
+                  <FaRegBookmark className="text-[length:var(--t-fine)]" />
                 )}
               </button>
             )}
           </div>
 
           {launch.description && (
-            <p className="text-xs text-gray-400 mt-1.5">{launch.description}</p>
+            <p className="text-[length:var(--t-fine)] text-[var(--ink-2)] mt-1.5">{launch.description}</p>
           )}
 
-          <p className="text-[11px] text-gray-600 mt-1.5">
+          <p className="text-[length:var(--t-fine)] text-[var(--ink-3)] mt-1.5">
             started by {short(launch.creator)} · vault {short(launch.feeRouter)}
           </p>
 
@@ -223,13 +223,13 @@ const Tag = ({
   tone: "emerald" | "amber" | "violet";
 }) => {
   const tones = {
-    emerald: "border-emerald-800 text-emerald-400",
-    amber: "border-amber-800 text-amber-400",
-    violet: "border-violet-800 text-violet-400",
+    emerald: "border-[var(--lichen)] text-[var(--lichen)]",
+    amber: "border-[var(--ochre)] text-[var(--ochre)]",
+    violet: "border-[var(--fjord)] text-[var(--fjord)]",
   } as const;
   return (
     <span
-      className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 border rounded ${tones[tone]}`}
+      className={`text-[length:var(--t-fine)] uppercase tracking-wider px-1.5 py-0.5 border rounded ${tones[tone]}`}
     >
       {children}
     </span>
@@ -238,24 +238,24 @@ const Tag = ({
 
 const Stat = ({ label, value, sub }: { label: string; value: string; sub?: string }) => (
   <div>
-    <p className="text-[10px] uppercase tracking-wider text-gray-500">{label}</p>
-    <p className="text-sm font-bold text-gray-100 truncate" title={value}>{value}</p>
-    {sub && <p className="text-[10px] text-gray-600 truncate">{sub}</p>}
+    <p className="text-[length:var(--t-fine)] uppercase tracking-wider text-[var(--ink-3)]">{label}</p>
+    <p className="text-[length:var(--t-base)] font-bold text-[var(--ink)] truncate" title={value}>{value}</p>
+    {sub && <p className="text-[length:var(--t-fine)] text-[var(--ink-3)] truncate">{sub}</p>}
   </div>
 );
 
 const Headline = ({
   label,
   value,
-  accent = "text-gray-100",
+  accent = "text-[var(--ink)]",
 }: {
   label: string;
   value: string;
   accent?: string;
 }) => (
-  <div className="bg-white/[0.03] border border-white/10 rounded-xl p-3.5">
-    <p className="text-[10px] uppercase tracking-wider text-gray-500">{label}</p>
-    <p className={`text-xl font-bold mt-0.5 truncate ${accent}`} title={value}>{value}</p>
+  <div className="bg-[var(--sheet)] border border-[var(--rule)]  p-3.5">
+    <p className="text-[length:var(--t-fine)] uppercase tracking-wider text-[var(--ink-3)]">{label}</p>
+    <p className={`text-[length:var(--t-base)] font-bold mt-1 tabular truncate ${accent}`} title={value}>{value}</p>
   </div>
 );
 
@@ -268,9 +268,9 @@ const Empty = ({
   body: string;
   action?: React.ReactNode;
 }) => (
-  <div className="border border-dashed border-gray-700 rounded-xl p-10 text-center">
-    <p className="text-gray-200 font-bold">{title}</p>
-    <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto">{body}</p>
+  <div className="border border-dashed border-[var(--rule)]  p-10 text-center">
+    <p className="text-[var(--ink)] font-bold">{title}</p>
+    <p className="text-[length:var(--t-base)] text-[var(--ink-3)] mt-2 max-w-md mx-auto">{body}</p>
     {action && <div className="mt-5 flex justify-center">{action}</div>}
   </div>
 );

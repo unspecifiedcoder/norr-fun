@@ -4,9 +4,7 @@ import { Card } from "./Card";
 import { useRegistryFeed } from "../hooks/useRegistryFeed";
 import { useSocial } from "../hooks/useSocial";
 import { ActionButton } from "./ActionButton";
-import { FaUserPlus, FaUserCheck } from "react-icons/fa";
-
-const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+import { FaUserPlus, FaUserCheck } from "react-icons/fa"; const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
 /**
  * What one address has done on the protocol: raises they started, and
@@ -16,30 +14,16 @@ const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
  * so no third party can enumerate who put in what. Fee allocations are public
  * by nature, because recipients have to be able to verify their own share.
  */
-export const Profile = () => {
-  const { address: routeAddress } = useParams<{ address: string }>();
-  const { address: connected } = useAccount();
-  const who = routeAddress ?? connected;
-
-  const feed = useRegistryFeed("newest", 100);
-  const social = useSocial({ account: routeAddress ?? connected });
-
-  if (!who) {
-    return (
+export const Profile = () => { const { address: routeAddress } = useParams<{ address: string }>(); const { address: connected } = useAccount(); const who = routeAddress ?? connected; const feed = useRegistryFeed("newest", 100); const social = useSocial({ account: routeAddress ?? connected }); if (!who) { return (
       <Notice title="No address" body="Connect a wallet or open a profile by address." />
     );
-  }
-
-  const lower = who.toLowerCase();
-  const created = feed.rows.filter((r) => r.launch.creator.toLowerCase() === lower);
-
-  return (
+  } const lower = who.toLowerCase(); const created = feed.rows.filter((r) => r.launch.creator.toLowerCase() === lower); return (
     <>
       <Card title="Profile">
-        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Address</p>
-        <p className="font-mono text-sm text-gray-100 break-all">{who}</p>
+        <p className="text-[length:var(--t-fine)] text-[var(--ink-3)] uppercase tracking-wider mb-1">Address</p>
+        <p className="font-mono text-[length:var(--t-base)] text-[var(--ink)] break-all">{who}</p>
         {connected?.toLowerCase() === lower && (
-          <p className="text-[11px] text-emerald-400 mt-2">This is you.</p>
+          <p className="text-[length:var(--t-fine)] text-[var(--lichen)] mt-2">This is you.</p>
         )}
         {social.canFollow && (
           <div className="mt-4">
@@ -53,10 +37,7 @@ export const Profile = () => {
           <Stat label="Followers" value={String(social.followers)} />
           <Stat label="Following" value={String(social.following)} />
           <Stat label="Raises started" value={String(created.length)} />
-          <Stat
-            label="Total raised across them"
-            value={
-              created.length
+          <Stat label="Total raised across them" value={ created.length
                 ? `${created
                     .reduce((sum, r) => sum + Number(r.format(r.raised)), 0)
                     .toLocaleString()} ${created[0].assetSymbol}`
@@ -68,27 +49,24 @@ export const Profile = () => {
 
       <Card title="Raises they started">
         {created.length === 0 ? (
-          <p className="text-sm text-gray-500">Nothing yet.</p>
+          <p className="text-[length:var(--t-base)] text-[var(--ink-3)]">Nothing yet.</p>
         ) : (
           <ul className="space-y-2">
             {created.map((r) => (
               <li key={r.launch.ido}>
-                <Link
-                  to={`/raise/${r.launch.ido}`}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-gray-700 hover:border-gray-500 transition-colors"
+                <Link to={`/raise/${r.launch.ido}`} className="flex items-center gap-3 p-3 border border-[var(--rule)] hover:border-[var(--rule)] transition-colors"
                 >
-                  <span className="w-8 h-8 rounded bg-gradient-to-br from-cyan-500/25 to-fuchsia-500/25 border border-gray-600 grid place-items-center text-[9px] font-bold shrink-0">
+                  <span className="w-8 h-8 rounded bg-[var(--fjord-wash)] border border-[var(--rule)] grid place-items-center text-[length:var(--t-fine)] font-bold shrink-0">
                     {r.launch.symbol.slice(0, 4)}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm text-gray-100 font-bold truncate">
+                    <span className="block text-[length:var(--t-base)] text-[var(--ink)] font-bold truncate">
                       {r.launch.name}
                     </span>
-                    <span className="block text-[11px] text-gray-500">
-                      vault {short(r.launch.feeRouter)}
+                    <span className="block text-[length:var(--t-fine)] text-[var(--ink-3)]"> vault {short(r.launch.feeRouter)}
                     </span>
                   </span>
-                  <span className="text-xs text-gray-300 shrink-0">
+                  <span className="text-[length:var(--t-fine)] text-[var(--ink-2)] shrink-0">
                     {Number(r.format(r.raised)).toLocaleString()} {r.assetSymbol}
                   </span>
                 </Link>
@@ -99,18 +77,14 @@ export const Profile = () => {
       </Card>
     </>
   );
-};
-
-const Stat = ({ label, value }: { label: string; value: string }) => (
-  <div className="bg-black/40 border border-gray-700 rounded-lg p-3">
-    <p className="text-[10px] uppercase tracking-wider text-gray-500">{label}</p>
-    <p className="text-base font-bold text-gray-100 break-all">{value}</p>
+}; const Stat = ({ label, value }: { label: string; value: string }) => (
+  <div className="bg-[var(--sheet)] border border-[var(--rule)] p-3">
+    <p className="text-[length:var(--t-fine)] uppercase tracking-wider text-[var(--ink-3)]">{label}</p>
+    <p className="text-[length:var(--t-base)] font-bold text-[var(--ink)] break-all">{value}</p>
   </div>
-);
-
-const Notice = ({ title, body }: { title: string; body: string }) => (
-  <div className="border border-dashed border-gray-700 rounded-xl p-10 text-center">
-    <p className="text-gray-200 font-bold">{title}</p>
-    <p className="text-sm text-gray-500 mt-2">{body}</p>
+); const Notice = ({ title, body }: { title: string; body: string }) => (
+  <div className="border border-dashed border-[var(--rule)] p-10 text-center">
+    <p className="text-[var(--ink)] font-bold">{title}</p>
+    <p className="text-[length:var(--t-base)] text-[var(--ink-3)] mt-2">{body}</p>
   </div>
 );

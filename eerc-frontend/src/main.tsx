@@ -8,6 +8,7 @@ import "@rainbow-me/rainbowkit/styles.css";
 import {
   getDefaultConfig,
   RainbowKitProvider,
+  darkTheme,
 } from "@rainbow-me/rainbowkit";
 import { WagmiProvider, http } from "wagmi";
 import { avalancheFuji, hardhat } from "wagmi/chains";
@@ -38,7 +39,18 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <WagmiProvider  config={config}>
-        <RainbowKitProvider>
+        {/* RainbowKit ships a blue accent that renders white-on-#0e76fd at
+            4.2:1 -- below AA -- and belongs to no palette this app uses. Point
+            it at the world's own pigments so the wallet control reads as part
+            of the sheet and clears contrast. */}
+        <RainbowKitProvider
+          theme={darkTheme({
+            accentColor: "#8e3520",
+            accentColorForeground: "#ffffff",
+            borderRadius: "none",
+            fontStack: "system",
+          })}
+        >
           <BrowserRouter>
             <App />
           </BrowserRouter>

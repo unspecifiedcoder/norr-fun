@@ -48,14 +48,14 @@ export const LaunchDetail = () => {
     <>
       <Link
         to="/"
-        className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-gray-200 transition-colors mb-5"
+        className="inline-flex items-center gap-2 text-[length:var(--t-fine)] text-[var(--ink-3)] hover:text-[var(--ink)] transition-colors mb-5"
       >
-        <FaArrowLeft className="text-[10px]" /> All raises
+        <FaArrowLeft className="text-[length:var(--t-fine)]" /> All raises
       </Link>
 
       <Card title={launch.name}>
         <div className="flex items-start gap-4 flex-wrap">
-          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500/25 to-fuchsia-500/25 border border-gray-600 grid place-items-center shrink-0 text-sm font-bold overflow-hidden">
+          <div className="w-14 h-14  bg-[var(--fjord-wash)] border border-[var(--rule)] grid place-items-center shrink-0 text-[length:var(--t-base)] font-bold overflow-hidden">
             {launch.logoURI ? (
               <img
                 src={launch.logoURI}
@@ -71,7 +71,7 @@ export const LaunchDetail = () => {
             {!launch.logoURI && launch.symbol.slice(0, 4)}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-gray-400 text-sm">
+            <p className="text-[var(--ink-2)] text-[length:var(--t-base)]">
               {launch.description || "No summary was provided for this raise."}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 mt-4">
@@ -109,29 +109,29 @@ export const LaunchDetail = () => {
 
 const Row = ({ label, value, copy }: { label: string; value: string; copy?: string }) => (
   <div className="flex items-baseline gap-2 min-w-0">
-    <span className="text-[10px] uppercase tracking-wider text-gray-500 w-24 shrink-0">
+    <span className="text-[length:var(--t-fine)] uppercase tracking-wider text-[var(--ink-3)] w-24 shrink-0">
       {label}
     </span>
-    <span className="text-xs text-gray-200 font-mono truncate">{value}</span>
+    <span className="text-[length:var(--t-fine)] text-[var(--ink)] font-mono truncate">{value}</span>
     {copy && (
       <button
         onClick={() => navigator.clipboard?.writeText(copy)}
         aria-label={`Copy ${label}`}
-        className="text-gray-600 hover:text-gray-300 transition-colors shrink-0"
+        className="text-[var(--ink-3)] hover:text-[var(--ink-2)] transition-colors shrink-0"
       >
-        <FaCopy className="text-[10px]" />
+        <FaCopy className="text-[length:var(--t-fine)]" />
       </button>
     )}
   </div>
 );
 
 const Notice = ({ title, body }: { title: string; body: string }) => (
-  <div className="border border-dashed border-gray-700 rounded-xl p-10 text-center">
-    <p className="text-gray-200 font-bold">{title}</p>
-    <p className="text-sm text-gray-500 mt-2">{body}</p>
+  <div className="border border-dashed border-[var(--rule)]  p-10 text-center">
+    <p className="text-[var(--ink)] font-bold">{title}</p>
+    <p className="text-[length:var(--t-base)] text-[var(--ink-3)] mt-2">{body}</p>
     <Link
       to="/"
-      className="inline-block mt-5 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+      className="inline-block mt-5 text-[length:var(--t-fine)] text-[var(--fjord)] hover:text-[var(--fjord)] transition-colors"
     >
       Back to all raises
     </Link>
