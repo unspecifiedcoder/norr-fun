@@ -13,6 +13,7 @@ import { ActionButton } from "./ActionButton";
 import { StyledInput } from "./StyledIntput";
 import { useCreateLaunch, CATEGORIES, type Category, type DeployStep } from "../hooks/useCreateLaunch";
 import { useBoards } from "../hooks/useBoards";
+import { useRegistryFeed } from "../hooks/useRegistryFeed";
 import { usePromotion, type Tier } from "../hooks/usePromotion";
 import { short, compact } from "./ui/format";
 
@@ -58,6 +59,7 @@ export const CreateLaunch = ({
 }) => {
   const c = useCreateLaunch();
   const { boards } = useBoards();
+  const { rows: feedRows } = useRegistryFeed("newest", 100);
   const { address } = useAccount();
   const promo = usePromotion(c.deployed?.ido);
   const [plan, setPlan] = useState<Tier | null>(null);
@@ -85,6 +87,20 @@ export const CreateLaunch = ({
   const chosenDesk = boards.find((b) => b.id === c.draft.boardId);
   const allocated = c.totalBps / 100;
   const allocationOk = c.totalBps === 10_000;
+
+  /**
+   * Ticker collision.
+   *
+   * Symbols are not unique on chain and nothing stops two raises sharing one,
+   * but a duplicate makes both harder to find and the feed harder to read.
+   * Stated as a caution rather than a block: it is the creator's call, and
+   * the registry will accept it either way.
+   */
+  const clash = feedRows.find(
+    (r) =>
+      c.draft.symbol.trim().length > 0 &&
+      r.launch.symbol.toLowerCase() === c.draft.symbol.trim().toLowerCase(),
+  );
 
   const core = [
     { key: "name", ok: c.draft.name.trim().length > 0 },
@@ -139,6 +155,12 @@ export const CreateLaunch = ({
                     onChange={(e) => c.update("symbol", e.target.value.toUpperCase())}
                     placeholder="NRTH"
                   />
+                  {clash && (
+                    <span className="block text-[length:var(--t-fine)] text-[var(--ochre)] mt-1.5">
+                      {clash.launch.name} already uses {clash.launch.symbol} on this
+                      chain. Allowed, but both get harder to find.
+                    </span>
+                  )}
                 </Field>
                 <Field
                   label="Total supply"
@@ -151,6 +173,30 @@ export const CreateLaunch = ({
                     placeholder="1000000"
                     type="number"
                   />
+                  {/* The three supplies almost every launch picks, so the
+                      common case is one click and the field stays free for
+                      anything else. */}
+                  <span className="flex gap-1 mt-1.5">
+                    {[
+                      ["1M", "1000000"],
+                      ["10M", "10000000"],
+                      ["1B", "1000000000"],
+                    ].map(([label, value]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => c.update("supply", value)}
+                        className="text-[length:var(--t-fine)] px-1.5 py-0.5 border rounded-[var(--r-control)] transition-colors"
+                        style={
+                          c.draft.supply === value
+                            ? { borderColor: "var(--falu)", color: "var(--falu)" }
+                            : { borderColor: "var(--rule)", color: "var(--ink-3)" }
+                        }
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </span>
                 </Field>
               </div>
 

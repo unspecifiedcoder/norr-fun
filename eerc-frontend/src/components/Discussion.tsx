@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { FaComment, FaReply, FaTimes, FaLink } from "react-icons/fa";
 import { Panel } from "./ui/Panel";
 import { Segmented } from "./ui/Controls";
@@ -49,6 +49,26 @@ export const Discussion = ({
   const c = useComments(subject);
   const [order, setOrder] = useState<"newest" | "oldest">("newest");
   const [replyTo, setReplyTo] = useState<number | null>(null);
+  const location = useLocation();
+
+  /**
+   * A linked comment scrolls itself into view and is marked.
+   *
+   * The Link button copied a `#c<id>` fragment that nothing consumed, so
+   * following one landed on the launch page with the discussion tab shut and
+   * no indication which comment was meant. The fragment now selects the
+   * comment, and the highlight fades rather than staying on permanently and
+   * looking like state.
+   */
+  const linked = location.hash.startsWith("#c")
+    ? Number(location.hash.slice(2))
+    : null;
+
+  useEffect(() => {
+    if (linked === null) return;
+    const el = document.getElementById(`c${linked}`);
+    if (el) el.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [linked, c.comments.length]);
 
   /**
    * page() returns newest-first, so a comment's stored index is
@@ -188,6 +208,7 @@ export const Discussion = ({
                 you={c.address}
                 creator={creator}
                 busy={c.busy}
+                linked={linked}
                 onReply={setReplyTo}
                 onWithdraw={(id) => c.withdraw(c.total - 1 - id)}
               />
@@ -204,6 +225,7 @@ const Entry = ({
   you,
   creator,
   busy,
+  linked,
   onReply,
   onWithdraw,
   depth = 0,
@@ -212,6 +234,7 @@ const Entry = ({
   you?: string;
   creator?: string;
   busy: boolean;
+  linked?: number | null;
   onReply: (id: number) => void;
   onWithdraw: (id: number) => void;
   depth?: number;
@@ -221,7 +244,19 @@ const Entry = ({
 
   return (
     <>
-      <div className="flex gap-3">
+      <div
+        id={`c${node.id}`}
+        className="flex gap-3 scroll-mt-24"
+        style={
+          linked === node.id
+            ? {
+                boxShadow: "inset 2px 0 0 var(--falu)",
+                paddingLeft: "0.625rem",
+                background: "var(--falu-wash)",
+              }
+            : undefined
+        }
+      >
         <Avatar seed={node.entry.author} fallback={node.entry.author.slice(2, 4)} size={28} />
 
         <div className="min-w-0 flex-1">
@@ -260,9 +295,14 @@ const Entry = ({
               <FaReply className="text-[10px]" /> Reply
             </button>
             <button
-              onClick={() =>
-                navigator.clipboard?.writeText(`${window.location.href}#c${node.id}`)
-              }
+              onClick={() => {
+                // Carries the tab as well as the comment, so following the
+                // link opens the discussion rather than the default view.
+                const url = new URL(window.location.href);
+                url.searchParams.set("tab", "comments");
+                url.hash = `c${node.id}`;
+                navigator.clipboard?.writeText(url.toString());
+              }}
               className="text-[length:var(--t-fine)] text-[var(--ink-4)] hover:text-[var(--ink)] transition-colors flex items-center gap-1.5"
               aria-label="Copy a link to this comment"
             >
@@ -292,6 +332,7 @@ const Entry = ({
                 you={you}
                 creator={creator}
                 busy={busy}
+                linked={linked}
                 onReply={onReply}
                 onWithdraw={onWithdraw}
                 depth={Math.min(depth + 1, 1)}

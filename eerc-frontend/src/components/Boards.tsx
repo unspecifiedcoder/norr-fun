@@ -8,6 +8,7 @@ import { StyledInput } from "./StyledIntput";
 import { useBoards, useBoardBySlug, type Board } from "../hooks/useBoards";
 import { useBoardFeed } from "../hooks/useBoardFeed";
 import { useRegistryFeed } from "../hooks/useRegistryFeed";
+import { Figure } from "./ui/Panel";
 import { short, since } from "./ui/format";
 
 /**
@@ -213,6 +214,34 @@ export const BoardDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const { board, notFound } = useBoardBySlug(slug);
   const feed = useBoardFeed(board?.id);
+  /**
+   * Outcomes for this desk.
+   *
+   * Summed from the same registry rows the global feed already reads, matched
+   * on boardId — so a desk's figures cannot drift from the raises listed
+   * under it, and no extra round-trip is needed to show them.
+   */
+  const all = useRegistryFeed("newest", 100);
+  const analytics = (() => {
+    const mine = board ? all.rows.filter((r) => r.launch.boardId === board.id) : [];
+    const raised = mine.reduce((sum, r) => sum + r.raised, 0n);
+    const symbol = mine[0]?.assetSymbol ?? "";
+    const owedBps = board ? BigInt(board.minPartnerBps) : 0n;
+    return {
+      count: mine.length,
+      open: mine.filter((r) => !r.finalized).length,
+      raised,
+      symbol,
+      // What the desk's minimum share of everything raised through it comes to.
+      owed: (raised * owedBps) / 10_000n,
+      compact: (v: bigint) => {
+        const n = Number(v) / 1e18;
+        if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+        if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+        return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+      },
+    };
+  })();
 
   if (notFound) {
     return <Notice title="No such desk" body={`Nothing is registered at /${slug}.`} />;
@@ -250,6 +279,22 @@ export const BoardDetail = () => {
           <Chip k="Opened" v={new Date(Number(board.createdAt) * 1000).toLocaleDateString()} />
         </div>
       </Panel>
+
+      {/* What the desk has actually done, rather than only what it charges.
+          A minimum share is a claim about terms; these are the outcomes. */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mb-4">
+        <Figure label="Raises published" value={String(analytics.count)} />
+        <Figure
+          label="Raised through it"
+          value={analytics.raised > 0n ? `${analytics.compact(analytics.raised)} ${analytics.symbol}` : "—"}
+          tone="accent"
+        />
+        <Figure
+          label="Owed to this desk"
+          value={analytics.owed > 0n ? `${analytics.compact(analytics.owed)} ${analytics.symbol}` : "—"}
+        />
+        <Figure label="Still accepting" value={String(analytics.open)} />
+      </div>
 
       <Panel title={`Raises here${feed.rows.length ? ` · ${feed.rows.length}` : ""}`} flush>
         {feed.rows.length === 0 ? (

@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useReadContract } from "wagmi";
 import { formatUnits } from "viem";
 import {
@@ -53,7 +52,22 @@ export const LaunchDetail = () => {
   const sale = useIdo(
     launch ? { ido: launch.ido, projectToken: launch.projectToken } : undefined,
   );
-  const [tab, setTab] = useState<Tab>("trades");
+  /**
+   * The open tab lives in the URL.
+   *
+   * A launch page is six views of one subject, and "look at the privacy tab
+   * of this raise" was previously unsendable — the link always landed on
+   * trades and the reader had to be told where to click. It also means back
+   * returns to the tab you came from rather than dumping you on the default.
+   */
+  const [params, setParams] = useSearchParams();
+  const tab = (params.get("tab") as Tab) ?? "trades";
+  const setTab = (next: Tab) => {
+    const p = new URLSearchParams(params);
+    if (next === "trades") p.delete("tab");
+    else p.set("tab", next);
+    setParams(p, { replace: true });
+  };
 
   const { data: supplyRaw } = useReadContract({
     address: launch?.projectToken as `0x${string}` | undefined,
