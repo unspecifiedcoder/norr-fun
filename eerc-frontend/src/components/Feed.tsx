@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import {
   FaPlus, FaSearch, FaBookmark, FaRegBookmark, FaBolt, FaClock,
   FaFire, FaLayerGroup, FaExchangeAlt, FaChartLine, FaLock, FaFlagCheckered, FaStream,
-  FaTimes,
+  FaTimes, FaUserCheck,
   FaBullhorn,
 } from "react-icons/fa";
 import { useSocial } from "../hooks/useSocial";
@@ -11,6 +11,7 @@ import { useRegistryFeed, type FeedRow } from "../hooks/useRegistryFeed";
 import { useProtocolStats } from "../hooks/useProtocolStats";
 import { useCurveSummary } from "../hooks/useCurveSummary";
 import { usePromoted } from "../hooks/usePromoted";
+import { useFollowedCreators } from "../hooks/useFollowedCreators";
 import { useBoards } from "../hooks/useBoards";
 import { ActionButton } from "./ActionButton";
 import { FeedSkeleton, StatSkeleton } from "./Skeleton";
@@ -78,7 +79,7 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
    */
   const viewQuery = (() => {
     const own = new URLSearchParams();
-    for (const key of ["sort", "q", "phase", "desk"]) {
+    for (const key of ["sort", "q", "phase", "desk", "following"]) {
       const value = params.get(key);
       if (value) own.set(key, value);
     }
@@ -100,6 +101,9 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
   const stats = useProtocolStats();
   const { boards } = useBoards();
   const promoted = usePromoted(useMemo(() => feed.rows.map((r) => r.launch.ido), [feed.rows]));
+  const followed = useFollowedCreators(
+    useMemo(() => feed.rows.map((r) => r.launch.creator), [feed.rows]),
+  );
 
   /**
    * Narrowing beyond the sort pills.
@@ -111,6 +115,7 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
    */
   const phase = params.get("phase") ?? "any";
   const desk = params.get("desk") ?? "any";
+  const following = params.get("following") === "1";
 
   const setParam = (key: string, value: string) => {
     const next = new URLSearchParams(params);
@@ -139,6 +144,8 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
     if (desk === "none") matched = matched.filter((r) => r.launch.boardId === 0n);
     else if (desk !== "any") matched = matched.filter((r) => r.launch.boardId.toString() === desk);
 
+    if (following) matched = matched.filter((r) => followed.isFollowed(r.launch.creator));
+
     // Paid slots ride above the chosen sort rather than replacing it: within
     // each group the reader's ordering still holds, and every promoted card
     // is labelled, so placement is visible rather than merely effective.
@@ -146,7 +153,7 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
       (a, b) =>
         Number(promoted.isPromoted(b.launch.ido)) - Number(promoted.isPromoted(a.launch.ido)),
     );
-  }, [feed.rows, query, promoted, phase, desk]);
+  }, [feed.rows, query, promoted, phase, desk, following, followed]);
 
   if (!feed.hasRegistry) {
     return (
@@ -206,7 +213,7 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
                   // Applied over whatever else the URL carries, so restoring a
                   // view never drops the dev-wallet flags mid-session.
                   const next = new URLSearchParams(params);
-                  ["sort", "q", "phase", "desk"].forEach((k) => next.delete(k));
+                  ["sort", "q", "phase", "desk", "following"].forEach((k) => next.delete(k));
                   new URLSearchParams(v.query).forEach((value, key) => next.set(key, value));
                   setParams(next, { replace: true });
                 }}
@@ -231,6 +238,20 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
         <Pills options={LENSES} value={lens} onChange={(v) => setParam("sort", v)} label="Sort raises" />
 
         <div className="flex items-center gap-3 flex-wrap">
+          {followed.available && (
+            <button
+              onClick={() => setParam("following", following ? "" : "1")}
+              className="pill"
+              aria-pressed={following}
+              title="Only raises started by creators you follow"
+            >
+              <FaUserCheck className="text-[10px]" /> Following
+              {followed.count > 0 && (
+                <span className="tabular text-[var(--ink-4)]">{followed.count}</span>
+              )}
+            </button>
+          )}
+
           <select
             value={phase}
             onChange={(e) => setParam("phase", e.target.value === "any" ? "" : e.target.value)}
@@ -292,6 +313,28 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
       ) : rows.length === 0 ? (
         query.trim() ? (
           <Empty title="Nothing matched" body={`No raise matches "${query.trim()}".`} />
+        ) : viewQuery ? (
+          /* Filtered to nothing is a different situation from an empty chain,
+             and offering to start a raise there answers a question nobody
+             asked. Say which filters are on and how to clear them. */
+          <Empty
+            title="No raise matches these filters"
+            body={`${feed.total} ${feed.total === 1 ? "raise exists" : "raises exist"} on this chain, but none of them ${[
+              following && "come from a creator you follow",
+              phase !== "any" && "are in that phase",
+              desk !== "any" && "were published under that desk",
+            ]
+              .filter(Boolean)
+              .join(", and none ")}.`}
+            action={
+              <button
+                onClick={() => setParams(new URLSearchParams(), { replace: true })}
+                className="px-4 py-2 border border-[var(--rule)] rounded-[var(--r-control)] text-[length:var(--t-fine)] uppercase tracking-[0.09em] text-[var(--ink)] hover:border-[var(--ink)] transition-colors"
+              >
+                Clear filters
+              </button>
+            }
+          />
         ) : (
           <Empty
             title="No raises yet"
