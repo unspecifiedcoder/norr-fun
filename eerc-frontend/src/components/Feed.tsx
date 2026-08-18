@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   FaPlus, FaSearch, FaBookmark, FaRegBookmark, FaBolt, FaClock,
-  FaFire, FaLayerGroup, FaExchangeAlt, FaChartLine, FaLock, FaFlagCheckered,
+  FaFire, FaLayerGroup, FaExchangeAlt, FaChartLine, FaLock, FaFlagCheckered, FaStream,
   FaBullhorn,
 } from "react-icons/fa";
 import { useSocial } from "../hooks/useSocial";
@@ -16,7 +16,7 @@ import { FeedSkeleton, StatSkeleton } from "./Skeleton";
 import { Avatar } from "./ui/Avatar";
 import { Sparkline } from "./ui/Chart";
 import { Pills, Meter } from "./ui/Controls";
-import { Figure } from "./ui/Panel";
+import { Figure, Empty as SheetEmpty } from "./ui/Panel";
 import { short, compact, price as fmtPrice, pct, since } from "./ui/format";
 
 /**
@@ -401,10 +401,4 @@ const Empty = ({
   title: string;
   body: string;
   action?: React.ReactNode;
-}) => (
-  <div className="border border-dashed border-[var(--rule)] rounded-[var(--r-panel)] p-12 text-center">
-    <p className="text-[var(--ink)] font-bold">{title}</p>
-    <p className="text-[length:var(--t-base)] text-[var(--ink-3)] mt-2 max-w-md mx-auto">{body}</p>
-    {action && <div className="mt-5 flex justify-center">{action}</div>}
-  </div>
-);
+}) => <SheetEmpty title={title} body={body} action={action} icon={<FaStream />} />;

@@ -769,3 +769,58 @@ input[type="number"] {
   --ink-3: #a8a49c;
   --ink-4: #7d7a73;
 }
+
+/* ==================================================================== */
+/* Print                                                                */
+/* ==================================================================== */
+/*
+ * A payout split and a holder table are the two things anyone actually wants
+ * on paper — a recipient checking their share, a creator filing what a raise
+ * did. Printing the app as-is produced eight pages of dark ground and a rail
+ * that repeated on every sheet.
+ *
+ * Ink on white, navigation dropped, and every table allowed to break across
+ * pages with its head repeated.
+ */
+@media print {
+  :root {
+    --snow: #ffffff;
+    --snow-sunk: #ffffff;
+    --sheet: #ffffff;
+    --sheet-raised: #ffffff;
+    --ink: #000000;
+    --ink-2: #222222;
+    --ink-3: #444444;
+    --ink-4: #666666;
+    --rule: #999999;
+    --rule-strong: #555555;
+    color-scheme: light;
+  }
+
+  html, body { background: #fff !important; color: #000 !important; }
+
+  /* Navigation, controls and anything that only exists to be clicked. */
+  aside,
+  header,
+  footer,
+  nav,
+  .toast,
+  .skip-link,
+  button,
+  input,
+  textarea,
+  select { display: none !important; }
+
+  /* The HUD ticks and the phosphor bloom are screen devices. */
+  .hud::before, .hud::after { display: none; }
+  .emissive { text-shadow: none !important; }
+
+  main { padding: 0 !important; max-width: none !important; }
+  .panel { break-inside: avoid; border-color: #999 !important; }
+  table { break-inside: auto; }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; }
+
+  /* An address is useless truncated on paper, where it cannot be clicked. */
+  a[href^="/u/"], a[href^="/raise/"] { text-decoration: none; color: #000 !important; }
+}

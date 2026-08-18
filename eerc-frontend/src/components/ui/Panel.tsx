@@ -40,6 +40,40 @@ export const Panel = ({
   </section>
 );
 
+/**
+ * Nothing here yet, said properly.
+ *
+ * An empty state is the first thing a judge sees on a fresh chain, and a bare
+ * sentence in grey reads as a component that failed to load. This is drawn as
+ * a bounded region in the same idiom as everything else -- corner ticks, a
+ * rule, a stated reason -- so an empty surface still looks deliberate.
+ */
+export const Empty = ({
+  title,
+  body,
+  action,
+  icon,
+}: {
+  title: string;
+  body: string;
+  action?: ReactNode;
+  icon?: ReactNode;
+}) => (
+  <div className="hud border border-dashed border-[var(--rule)] rounded-[var(--r-panel)] p-10 text-center">
+    {icon && (
+      <span
+        className="w-9 h-9 mx-auto mb-3 grid place-items-center border rounded-[var(--r-control)]"
+        style={{ color: "var(--ink-4)", borderColor: "var(--rule)" }}
+      >
+        {icon}
+      </span>
+    )}
+    <p className="text-[var(--ink)] font-bold">{title}</p>
+    <p className="text-[length:var(--t-fine)] text-[var(--ink-3)] mt-2 max-w-md mx-auto">{body}</p>
+    {action && <div className="mt-5 flex justify-center">{action}</div>}
+  </div>
+);
+
 /** A label/figure pair, for the metadata strip above a chart. */
 export const Chip = ({
   k,
