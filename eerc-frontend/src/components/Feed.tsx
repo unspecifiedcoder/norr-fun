@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   FaPlus, FaSearch, FaBookmark, FaRegBookmark, FaBolt, FaClock,
   FaFire, FaLayerGroup, FaExchangeAlt, FaChartLine, FaLock, FaFlagCheckered, FaStream,
+  FaTimes,
   FaBullhorn,
 } from "react-icons/fa";
 import { useSocial } from "../hooks/useSocial";
@@ -42,8 +43,55 @@ const LENSES = [
   { value: "watch" as const, label: "All", icon: <FaLayerGroup />, hint: "Everything on this chain" },
 ];
 
+const SAVED_KEY = "norr.feed.views.v1";
+
+type SavedView = { name: string; query: string };
+
 export const Feed = ({ onCreate }: { onCreate: () => void }) => {
   const [params, setParams] = useSearchParams();
+
+  /**
+   * Saved views.
+   *
+   * The feed's whole state already lives in the URL, which makes a saved view
+   * nothing more than a stored query string — no separate model, no risk of a
+   * view meaning something different from the link that produced it. Kept in
+   * this browser because it is a working habit, not a fact about the protocol
+   * that anyone else needs to verify.
+   */
+  const [views, setViews] = useState<SavedView[]>(() => {
+    try {
+      return JSON.parse(window.localStorage.getItem(SAVED_KEY) ?? "[]") as SavedView[];
+    } catch {
+      return [];
+    }
+  });
+
+  /**
+   * Only the feed's own state is a view.
+   *
+   * The URL also carries things that have nothing to do with what is being
+   * looked at -- the dev wallet flags, for instance -- and baking those into
+   * a saved view both made the default view look filtered and carried a
+   * development flag into a saved link.
+   */
+  const viewQuery = (() => {
+    const own = new URLSearchParams();
+    const sort = params.get("sort");
+    const q = params.get("q");
+    if (sort) own.set("sort", sort);
+    if (q) own.set("q", q);
+    return own.toString();
+  })();
+
+  const persist = (next: SavedView[]) => {
+    setViews(next);
+    try {
+      window.localStorage.setItem(SAVED_KEY, JSON.stringify(next));
+    } catch {
+      /* a blocked store just means views do not survive the session */
+    }
+  };
   const lens = (params.get("sort") as Lens) ?? "newest";
   const query = params.get("q") ?? "";
 
@@ -129,6 +177,38 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
         )}
       </div>
 
+      {views.length > 0 && (
+        <div className="flex items-center gap-1.5 flex-wrap mb-3">
+          <span className="label">Saved</span>
+          {views.map((v) => (
+            <span key={v.name} className="flex items-center">
+              <button
+                onClick={() => {
+                  // Applied over whatever else the URL carries, so restoring a
+                  // view never drops the dev-wallet flags mid-session.
+                  const next = new URLSearchParams(params);
+                  next.delete("sort");
+                  next.delete("q");
+                  new URLSearchParams(v.query).forEach((value, key) => next.set(key, value));
+                  setParams(next, { replace: true });
+                }}
+                className="pill"
+                aria-pressed={v.query === viewQuery}
+              >
+                {v.name}
+              </button>
+              <button
+                onClick={() => persist(views.filter((x) => x.name !== v.name))}
+                aria-label={`Remove saved view ${v.name}`}
+                className="text-[var(--ink-4)] hover:text-[var(--falu)] transition-colors ml-1"
+              >
+                <FaTimes className="text-[9px]" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
         <Pills options={LENSES} value={lens} onChange={(v) => setParam("sort", v)} label="Sort raises" />
 
@@ -143,6 +223,19 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
               className="bg-[var(--snow-sunk)] border border-[var(--rule)] rounded-[var(--r-control)] pl-7 pr-3 py-1.5 text-[length:var(--t-fine)] text-[var(--ink)] placeholder:text-[var(--ink-4)] outline-none focus:border-[var(--ink-4)] transition-colors w-56 max-w-full"
             />
           </label>
+          {/* Only offered once the view is actually filtered: saving the
+              default view would just be a button that does nothing. */}
+          {viewQuery && !views.some((v) => v.query === viewQuery) && (
+            <button
+              onClick={() => {
+                const name = (query.trim() || lens).slice(0, 18);
+                persist([...views.filter((v) => v.name !== name), { name, query: viewQuery }]);
+              }}
+              className="text-[length:var(--t-fine)] text-[var(--ink-3)] hover:text-[var(--ink)] transition-colors flex items-center gap-1.5"
+            >
+              <FaBookmark className="text-[9px]" /> Save view
+            </button>
+          )}
           <p className="text-[length:var(--t-fine)] text-[var(--ink-3)] tabular">
             {rows.length}/{feed.total} on chain {feed.chainId}
           </p>
