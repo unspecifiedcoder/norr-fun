@@ -20,6 +20,7 @@ import { createConfig, WagmiProvider, http } from "wagmi";
 import { avalancheFuji, hardhat } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { installDevWallet } from "./lib/dev-wallet";
+import { ToastProvider } from "./components/Toasts";
 
 // Must run before the wagmi config is built so connector discovery sees it.
 // No-op unless this is a dev build launched with ?devwallet=1.
@@ -100,7 +101,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           })}
         >
           <BrowserRouter>
-            <App />
+            <ToastProvider>
+              <App />
+            </ToastProvider>
           </BrowserRouter>
         </RainbowKitProvider>
       </WagmiProvider >

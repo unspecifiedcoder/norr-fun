@@ -4,6 +4,7 @@ import { formatUnits, parseUnits, parseAbiItem } from "viem";
 import { bondingCurveAbi, erc20Abi } from "../contracts/abis";
 import markets from "../deployments/market-31337.json";
 import { usePreferences } from "./usePreferences";
+import { useToast } from "../components/toast-context";
 
 const MARKETS: Record<number, Record<string, string>> = {
   [markets.chainId]: markets.markets as Record<string, string>,
@@ -66,6 +67,7 @@ export function useMarket(sale?: string) {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
+  const toast = useToast();
 
   const curve = getMarket(chainId, sale) as `0x${string}` | undefined;
 
@@ -219,6 +221,10 @@ export function useMarket(sale?: string) {
     return (quote.out * (10_000n - bps)) / 10_000n;
   }, [quote, slippagePct]);
 
+  // Named locally so the transaction toasts can say which token is moving.
+  const tokenSymbol = (meta?.[0]?.result as string | undefined) ?? "";
+  const baseSymbol = (meta?.[1]?.result as string | undefined) ?? "";
+
   const trade = useCallback(async () => {
     if (!curve || !publicClient || !address || !quote || !amount) return;
     setBusy(true);
@@ -229,6 +235,11 @@ export function useMarket(sale?: string) {
 
       if (spendToken) {
         setStatus("Approving…");
+        const approveId = toast.push({
+          kind: "pending",
+          title: `Approving ${side === "buy" ? baseSymbol : tokenSymbol}`,
+          detail: "One signature to let the curve take the amount.",
+        });
         const approveHash = await writeContractAsync({
           address: spendToken,
           abi: erc20Abi,
@@ -236,9 +247,15 @@ export function useMarket(sale?: string) {
           args: [curve, value],
         });
         await publicClient.waitForTransactionReceipt({ hash: approveHash });
+        toast.settle(approveId, { kind: "done", title: "Approved", hash: approveHash });
       }
 
       setStatus(side === "buy" ? "Buying…" : "Selling…");
+      const tradeId = toast.push({
+        kind: "pending",
+        title: side === "buy" ? `Buying ${tokenSymbol}` : `Selling ${tokenSymbol}`,
+        detail: `${amount} ${side === "buy" ? baseSymbol : tokenSymbol}`,
+      });
       const hash = await writeContractAsync({
         address: curve,
         abi: bondingCurveAbi,
@@ -246,19 +263,27 @@ export function useMarket(sale?: string) {
         args: [value, minOut],
       });
       await publicClient.waitForTransactionReceipt({ hash });
+      toast.settle(tradeId, {
+        kind: "done",
+        title: side === "buy" ? "Bought" : "Sold",
+        hash,
+      });
 
       setStatus(side === "buy" ? "Bought." : "Sold.");
       setAmount("");
       await Promise.all([refetch(), refetchMeta(), loadTrades()]);
     } catch (err) {
       const e = err as { shortMessage?: string; message?: string };
-      setStatus(e.shortMessage ?? e.message ?? String(err));
+      const reason = e.shortMessage ?? e.message ?? String(err);
+      setStatus(reason);
+      toast.push({ kind: "failed", title: "Trade failed", detail: reason });
     } finally {
       setBusy(false);
     }
   }, [
     curve, publicClient, address, quote, amount, side, baseAddress, tokenAddress,
-    minOut, writeContractAsync, refetch, refetchMeta, loadTrades,
+    minOut, writeContractAsync, refetch, refetchMeta, loadTrades, toast,
+    baseSymbol, tokenSymbol,
   ]);
 
   const graduate = useCallback(async () => {
@@ -333,8 +358,8 @@ export function useMarket(sale?: string) {
     graduationTarget: (data?.[4]?.result as bigint | undefined) ?? 0n,
     progressPct: progressBps / 100,
     canGraduate: progressBps >= 10_000,
-    tokenSymbol: (meta?.[0]?.result as string | undefined) ?? "",
-    baseSymbol: (meta?.[1]?.result as string | undefined) ?? "",
+    tokenSymbol,
+    baseSymbol,
     tokenBalance: (meta?.[2]?.result as bigint | undefined) ?? 0n,
     baseBalance: (meta?.[3]?.result as bigint | undefined) ?? 0n,
     trades,

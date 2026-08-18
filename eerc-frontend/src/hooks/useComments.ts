@@ -8,6 +8,7 @@ import {
 } from "wagmi";
 import { launchCommentsAbi } from "../contracts/abis";
 import { getRegistry } from "../contracts/config";
+import { useToast } from "../components/toast-context";
 
 export type CommentEntry = {
   author: string;
@@ -30,6 +31,7 @@ export function useComments(subject?: string) {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
+  const toast = useToast();
   const registry = getRegistry(chainId);
   const contract = registry?.comments as `0x${string}` | undefined;
 
@@ -67,6 +69,7 @@ export function useComments(subject?: string) {
     setStatus("");
     try {
       setStatus("Posting…");
+      const postId = toast.push({ kind: "pending", title: "Posting comment" });
       const hash = await writeContractAsync({
         address: contract,
         abi: launchCommentsAbi,
@@ -74,6 +77,7 @@ export function useComments(subject?: string) {
         args: [subject as `0x${string}`, body],
       });
       await publicClient.waitForTransactionReceipt({ hash });
+      toast.settle(postId, { kind: "done", title: "Comment posted", hash });
       setDraft("");
       setStatus("");
       await refetch();

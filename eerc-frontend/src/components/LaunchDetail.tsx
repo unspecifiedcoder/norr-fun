@@ -17,6 +17,7 @@ import { slugForChain } from "../lib/chains";
 import { Panel, Chip } from "./ui/Panel";
 import { Tabs, Meter } from "./ui/Controls";
 import { Avatar } from "./ui/Avatar";
+import { CopyButton } from "./ui/Live";
 import { short, compact, price as fmtPrice, pct } from "./ui/format";
 import { MarketChart, TradePanel, TradesTable, GraduationRail } from "./Market";
 import { FeeBuilder } from "./FeeBuilder";
@@ -25,9 +26,11 @@ import { Discussion } from "./Discussion";
 import { Holders } from "./Holders";
 import { Promote } from "./Promote";
 import { Contribute } from "./Contribute";
+import { ProofVerifier } from "./ProofVerifier";
+import { PrivacyLedger } from "./PrivacyLedger";
 import { getMarket } from "../hooks/useMarket";
 
-type Tab = "trades" | "comments" | "holders" | "split" | "promote";
+type Tab = "trades" | "comments" | "holders" | "split" | "promote" | "privacy";
 
 /**
  * Everything about one launch, resolved from the sale address in the URL.
@@ -89,6 +92,7 @@ export const LaunchDetail = () => {
     { value: "holders" as const, label: "Holders", icon: <FaUsers className="text-[10px]" /> },
     { value: "split" as const, label: "Payout split", icon: <FaCoins className="text-[10px]" />, count: splits.length },
     { value: "promote" as const, label: "Placement", icon: <FaBullhorn className="text-[10px]" /> },
+    { value: "privacy" as const, label: "Privacy", icon: <FaLock className="text-[10px]" /> },
   ];
 
   return (
@@ -249,6 +253,12 @@ export const LaunchDetail = () => {
                 />
               )}
               {tab === "promote" && <Promote sale={launch.ido} />}
+              {tab === "privacy" && (
+                <div className="space-y-4">
+                  <PrivacyLedger />
+                  <ProofVerifier ido={launch.ido} />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -347,13 +357,13 @@ const Meta = ({
       <span className="text-[length:var(--t-fine)] text-[var(--ink)] truncate">{value}</span>
     )}
     {copy && (
-      <button
-        onClick={() => navigator.clipboard?.writeText(copy)}
-        aria-label={`Copy ${label}`}
+      <CopyButton
+        value={copy}
+        label={label}
         className="text-[var(--ink-4)] hover:text-[var(--ink)] transition-colors shrink-0"
       >
         <FaCopy className="text-[10px]" />
-      </button>
+      </CopyButton>
     )}
   </span>
 );

@@ -58,6 +58,9 @@ export const MarketChart = ({
         t: t.timestamp,
         p: Number(t.priceX18) / 1e18,
         side: t.side,
+        // Base-token size, so the volume row measures turnover rather than
+        // counting fills.
+        v: Number(t.baseAmount) / 1e18,
       })),
     [m.trades],
   );

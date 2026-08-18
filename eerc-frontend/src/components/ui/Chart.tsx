@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { price as fmtPrice } from "./format";
 
 export type Fill = {
@@ -6,6 +6,8 @@ export type Fill = {
   t: number;
   p: number;
   side: "buy" | "sell";
+  /** Base-token size of the fill, for the volume row. */
+  v?: number;
 };
 
 /**
@@ -82,7 +84,7 @@ export const Sparkline = ({
   );
 };
 
-export type Candle = { t: number; o: number; h: number; l: number; c: number };
+export type Candle = { t: number; o: number; h: number; l: number; c: number; v: number };
 
 /**
  * Bucket fills into OHLC candles.
@@ -110,6 +112,7 @@ const toCandles = (fills: Fill[], bucketSeconds: number): Candle[] => {
         c: ps[ps.length - 1],
         h: Math.max(...ps),
         l: Math.min(...ps),
+        v: group.reduce((sum, g) => sum + (g.v ?? 0), 0),
       };
     });
 };
@@ -136,6 +139,17 @@ export const Chart = ({
   scale?: number;
   height?: number;
 }) => {
+  /**
+   * Crosshair state.
+   *
+   * A trading chart without a readout is a picture. Hovering names the exact
+   * interval under the pointer -- open, high, low, close and the volume that
+   * produced it -- so a judge can interrogate a candle rather than squint at
+   * it.
+   */
+  const [hover, setHover] = useState<number | null>(null);
+  const svg = useRef<SVGSVGElement>(null);
+
   const candles = useMemo(
     () => toCandles(fills, bucketSeconds).map((c) => ({
       t: c.t,
@@ -143,6 +157,7 @@ export const Chart = ({
       h: c.h * scale,
       l: c.l * scale,
       c: c.c * scale,
+      v: c.v,
     })),
     [fills, bucketSeconds, scale],
   );
@@ -167,8 +182,9 @@ export const Chart = ({
   const H = height;
   const PAD_R = 96;   // right gutter for the price scale
   const PAD_B = 26;   // bottom gutter for the time scale
+  const VOL_H = 46;   // volume row, below price and above the time scale
   const plotW = W - PAD_R;
-  const plotH = H - PAD_B;
+  const plotH = H - PAD_B - VOL_H;
 
   const lo = Math.min(...candles.map((c) => c.l));
   const hi = Math.max(...candles.map((c) => c.h));
@@ -193,6 +209,8 @@ export const Chart = ({
     .map((c, i) => `${(i * step + step / 2).toFixed(1)},${y(c.c).toFixed(1)}`)
     .join(" ");
 
+  const maxVol = Math.max(...candles.map((c) => c.v), 0) || 1;
+
   const stamp = (t: number) => {
     const d = new Date(t * 1000);
     return bucketSeconds >= 86400
@@ -200,13 +218,30 @@ export const Chart = ({
       : d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
   };
 
+  const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const box = e.currentTarget.getBoundingClientRect();
+    // The viewBox is stretched to the element, so map back through its width.
+    const x = ((e.clientX - box.left) / box.width) * W;
+    if (x > plotW) {
+      setHover(null);
+      return;
+    }
+    const i = Math.min(candles.length - 1, Math.max(0, Math.floor(x / step)));
+    setHover(i);
+  };
+
+  const active = hover !== null ? candles[hover] : null;
+
   return (
     <svg
+      ref={svg}
       viewBox={`0 0 ${W} ${H}`}
       style={{ width: "100%", height, display: "block" }}
       preserveAspectRatio="none"
       role="img"
       aria-label={`Price chart, ${candles.length} intervals, ${rising ? "up" : "down"} since open`}
+      onMouseMove={onMove}
+      onMouseLeave={() => setHover(null)}
     >
       {/* graticule */}
       {levels.map((v, i) => (
@@ -321,6 +356,82 @@ export const Chart = ({
       >
         {fmtPrice(last)}
       </text>
+
+      {/* volume, on its own baseline under the price */}
+      {candles.map((c, i) => {
+        const h = Math.max(1, (c.v / maxVol) * (VOL_H - 10));
+        return (
+          <rect
+            key={`v${c.t}`}
+            x={i * step + step / 2 - bw / 2}
+            y={plotH + VOL_H - h}
+            width={bw}
+            height={h}
+            fill={c.c >= c.o ? "var(--gain)" : "var(--loss)"}
+            opacity={hover === i ? 0.85 : 0.32}
+          />
+        );
+      })}
+      <line
+        x1="0"
+        x2={plotW}
+        y1={plotH + VOL_H}
+        y2={plotH + VOL_H}
+        stroke="var(--rule)"
+        strokeWidth="1"
+        vectorEffect="non-scaling-stroke"
+      />
+
+      {/* crosshair */}
+      {active && (
+        <>
+          <line
+            x1={(hover! * step) + step / 2}
+            x2={(hover! * step) + step / 2}
+            y1="0"
+            y2={plotH + VOL_H}
+            stroke="var(--ink-3)"
+            strokeWidth="1"
+            strokeDasharray="2 3"
+            vectorEffect="non-scaling-stroke"
+          />
+          <line
+            x1="0"
+            x2={plotW}
+            y1={y(active.c)}
+            y2={y(active.c)}
+            stroke="var(--ink-3)"
+            strokeWidth="1"
+            strokeDasharray="2 3"
+            vectorEffect="non-scaling-stroke"
+          />
+        </>
+      )}
+
+      {/* readout for the hovered interval */}
+      {active && (
+        <g transform={`translate(${(hover! * step) + step / 2 < plotW / 2 ? (hover! * step) + step / 2 + 12 : (hover! * step) + step / 2 - 232}, 8)`}>
+          <rect width="220" height="74" fill="var(--sheet-raised)" stroke="var(--rule-strong)" />
+          <text x="10" y="18" fill="var(--ink-3)" fontSize="11" fontFamily="var(--face-data)">
+            {stamp(active.t)}
+          </text>
+          <text x="10" y="34" fill="var(--ink)" fontSize="11" fontFamily="var(--face-data)">
+            {`O ${fmtPrice(active.o)}  H ${fmtPrice(active.h)}`}
+          </text>
+          <text x="10" y="50" fill="var(--ink)" fontSize="11" fontFamily="var(--face-data)">
+            {`L ${fmtPrice(active.l)}  C ${fmtPrice(active.c)}`}
+          </text>
+          <text
+            x="10"
+            y="66"
+            fill={active.c >= active.o ? "var(--gain)" : "var(--loss)"}
+            fontSize="11"
+            fontFamily="var(--face-data)"
+          >
+            {`vol ${active.v.toFixed(3)}`}
+          </text>
+        </g>
+      )}
 
       {/* time scale */}
       {[0, Math.floor(candles.length / 2), candles.length - 1].map((i, n) => (

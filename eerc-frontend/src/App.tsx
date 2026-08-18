@@ -12,10 +12,12 @@ import { Preferences } from "./components/Preferences";
 import { ChainGuard } from "./components/ChainGuard";
 import { Shell } from "./components/Shell";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { CommandPalette } from "./components/CommandPalette";
 
 export default function App() {
   return (
     <Shell>
+      <CommandPalette />
       {/* Scoped to the routed view: the rail and the chrome stay usable
           when one screen throws. */}
       <ErrorBoundary label="route">

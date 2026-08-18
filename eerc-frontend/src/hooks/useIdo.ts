@@ -4,6 +4,7 @@ import { formatUnits, getAddress } from "viem";
 import { erc20Abi, idoAbi } from "../contracts/abis";
 import { getLaunch } from "../contracts/config";
 import proofData from "../deployments/proofs-31337.json";
+import { useToast } from "../components/toast-context";
 
 type ProofEntry = { allocationWei: string; proof: string[] };
 
@@ -29,6 +30,7 @@ export function useIdo(target?: IdoTarget) {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
+  const toast = useToast();
 
   const fallback = getLaunch(chainId);
   const launch = target ?? fallback;
@@ -83,8 +85,15 @@ export function useIdo(target?: IdoTarget) {
     if (!ido || !publicClient || !address || !entry) return;
     setBusy(true);
     setStatus("");
+    // Declared outside the try so a failure can settle the same toast.
+    let claimId = 0;
     try {
       setStatus("Submitting claim...");
+      claimId = toast.push({
+        kind: "pending",
+        title: "Claiming allocation",
+        detail: "Proving your entry against the published root.",
+      });
       const hash = await writeContractAsync({
         address: ido,
         abi: idoAbi,
@@ -96,11 +105,18 @@ export function useIdo(target?: IdoTarget) {
         ],
       });
       await publicClient.waitForTransactionReceipt({ hash });
+      toast.settle(claimId, {
+        kind: "done",
+        title: `Claimed ${formatUnits(claimable, 18)} tokens`,
+        hash,
+      });
       setStatus(`Claimed ${formatUnits(claimable, 18)} tokens.`);
       await refetch();
     } catch (err) {
       const e = err as { shortMessage?: string; message?: string };
-      setStatus(`Claim failed: ${e.shortMessage ?? e.message ?? String(err)}`);
+      const reason = e.shortMessage ?? e.message ?? String(err);
+      toast.settle(claimId, { kind: "failed", title: "Claim failed", detail: reason });
+      setStatus(`Claim failed: ${reason}`);
     } finally {
       setBusy(false);
     }

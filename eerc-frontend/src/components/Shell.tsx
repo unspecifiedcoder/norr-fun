@@ -8,10 +8,12 @@ import {
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useBlockNumber, useChainId } from "wagmi";
 import { Logo } from "./Logo";
+import { NodeStatus } from "./NodeStatus";
 import { Avatar } from "./ui/Avatar";
 import { useProtocolStats } from "../hooks/useProtocolStats";
 import { useBoards } from "../hooks/useBoards";
 import { useActivity } from "../hooks/useActivity";
+import { Live } from "./ui/Live";
 
 /**
  * Application shell.
@@ -79,6 +81,7 @@ export const Shell = ({ children }: { children: React.ReactNode }) => {
 
       {/* ---- content ---- */}
       <div className="flex-1 min-w-0 flex flex-col">
+        <NodeStatus />
         <TopBar />
         <main className="flex-1 px-4 sm:px-6 py-6 w-full max-w-[1600px]">{children}</main>
         <StatusBar />
@@ -184,9 +187,9 @@ const Rail = ({ open }: { open: boolean }) => {
       {/* Live protocol figures, so the rail carries information and not just links. */}
       <div className="hidden lg:block px-4 py-3 border-t border-[var(--rule)]">
         <dl className="space-y-1 text-[length:var(--t-fine)]">
-          <Figure label="Raises" value={String(stats.raises)} />
-          <Figure label="Accepting" value={String(stats.open)} accent />
-          <Figure label="Desks" value={String(stats.desks)} />
+          <Figure label="Raises" value={String(stats.raises)} numeric={stats.raises} />
+          <Figure label="Accepting" value={String(stats.open)} numeric={stats.open} accent />
+          <Figure label="Desks" value={String(stats.desks)} numeric={stats.desks} />
           <Figure
             label="Raised"
             value={stats.raised > 0n ? `${stats.compact(stats.raised)} ${stats.symbol}` : "—"}
@@ -386,10 +389,13 @@ const Figure = ({
   label,
   value,
   accent = false,
+  numeric,
 }: {
   label: string;
   value: string;
   accent?: boolean;
+  /** When the figure is a plain count, roll it so a change is noticed. */
+  numeric?: number;
 }) => (
   <div className="flex justify-between gap-2">
     <dt className="text-[var(--ink-3)]">{label}</dt>
@@ -397,7 +403,11 @@ const Figure = ({
       className="font-bold tabular"
       style={{ color: accent ? "var(--falu)" : "var(--ink-2)" }}
     >
-      {value}
+      {numeric !== undefined ? (
+        <Live value={numeric} format={(n) => String(Math.round(n))} />
+      ) : (
+        value
+      )}
     </dd>
   </div>
 );

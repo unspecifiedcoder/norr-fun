@@ -659,3 +659,73 @@ input[type="number"] {
   border-radius: 0;
 }
 *::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
+
+/* ==================================================================== */
+/* Motion                                                               */
+/* ==================================================================== */
+/*
+ * Every animation here reports state. None of it is decoration, and all of
+ * it stops under prefers-reduced-motion -- a surface that signs transactions
+ * should never move for its own sake.
+ */
+
+@keyframes norr-spin { to { transform: rotate(360deg); } }
+.spin { animation: norr-spin 900ms linear infinite; }
+
+/* Toasts enter from the edge they live on, so the eye knows where to look. */
+@keyframes norr-toast-in {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.toast {
+  position: relative;
+  overflow: hidden;
+  background: var(--sheet-raised);
+  animation: norr-toast-in 160ms ease-out;
+}
+
+/* The moving rule under a pending toast. Indeterminate on purpose: the app
+   cannot know how long a block or a proof will take, and a progress bar that
+   pretends to would be lying. */
+@keyframes norr-toast-bar {
+  0%   { left: -40%; width: 40%; }
+  100% { left: 100%;  width: 40%; }
+}
+
+.toast__bar {
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  background: var(--falu);
+  animation: norr-toast-bar 1200ms linear infinite;
+}
+
+/* A figure that has just changed flashes its new value once. */
+@keyframes norr-tick {
+  0%   { color: var(--falu); }
+  100% { color: inherit; }
+}
+.ticked { animation: norr-tick 700ms ease-out; }
+
+/* Content replacing a skeleton fades rather than snapping. */
+@keyframes norr-settle {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.settle { animation: norr-settle 180ms ease-out; }
+
+/* Screen-reader-only, for the live regions that announce transaction state. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin, .toast, .toast__bar, .ticked, .settle { animation: none !important; }
+}

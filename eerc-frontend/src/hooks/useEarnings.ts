@@ -3,6 +3,7 @@ import { useAccount, useChainId, usePublicClient, useReadContracts, useWriteCont
 import { formatUnits } from "viem";
 import { erc20Abi, feeRouterAbi } from "../contracts/abis";
 import { useRegistryFeed } from "./useRegistryFeed";
+import { useToast } from "../components/toast-context";
 
 export type EarningRow = {
   ido: string;
@@ -32,6 +33,7 @@ export function useEarnings() {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
+  const toast = useToast();
   const feed = useRegistryFeed("newest", 100);
 
   const holder = (address ?? "0x0000000000000000000000000000000000000000") as `0x${string}`;
@@ -99,6 +101,7 @@ export function useEarnings() {
       setBusy(true);
       setStatus("");
       try {
+        const id = toast.push({ kind: "pending", title: "Collecting your share" });
         const hash = await writeContractAsync({
           address: feeRouter as `0x${string}`,
           abi: feeRouterAbi,
@@ -106,6 +109,7 @@ export function useEarnings() {
           args: [address],
         });
         await publicClient.waitForTransactionReceipt({ hash });
+        toast.settle(id, { kind: "done", title: "Collected", hash });
         await refetch();
       } catch (err) {
         const e = err as { shortMessage?: string; message?: string };
