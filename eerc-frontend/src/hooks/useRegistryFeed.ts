@@ -47,7 +47,7 @@ export function useRegistryFeed(sort: FeedSort = "newest", pageSize = 25) {
   const chainId = useChainId();
   const registry = getRegistry(chainId);
 
-  const { data: pageData, refetch } = useReadContract({
+  const { data: pageData, refetch, isLoading: pageLoading } = useReadContract({
     address: registry?.address as `0x${string}` | undefined,
     abi: launchRegistryAbi,
     functionName: "page",
@@ -61,7 +61,7 @@ export function useRegistryFeed(sort: FeedSort = "newest", pageSize = 25) {
   );
   const total = (pageData as [RegistryLaunch[], bigint] | undefined)?.[1] ?? 0n;
 
-  const { data: live } = useReadContracts({
+  const { data: live, isLoading: liveLoading } = useReadContracts({
     contracts: launches.flatMap((l) => [
       { address: l.feeRouter as `0x${string}`, abi: feeRouterAbi, functionName: "totalReceived" as const },
       { address: l.feeRouter as `0x${string}`, abi: feeRouterAbi, functionName: "totalReleased" as const },
@@ -102,5 +102,15 @@ export function useRegistryFeed(sort: FeedSort = "newest", pageSize = 25) {
     return built;
   }, [launches, live, sort]);
 
-  return { rows, total: Number(total), hasRegistry: !!registry, chainId, refetch };
+  const isLoading =
+    !!registry && (pageLoading || (launches.length > 0 && liveLoading));
+
+  return {
+    rows,
+    total: Number(total),
+    hasRegistry: !!registry,
+    chainId,
+    refetch,
+    isLoading,
+  };
 }

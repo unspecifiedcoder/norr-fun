@@ -5,6 +5,7 @@ import { useSocial } from "../hooks/useSocial";
 import { ActionButton } from "./ActionButton";
 import { useRegistryFeed, SORTS, type FeedSort, type FeedRow } from "../hooks/useRegistryFeed";
 import { useProtocolStats } from "../hooks/useProtocolStats";
+import { FeedSkeleton, StatSkeleton } from "./Skeleton";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
@@ -59,6 +60,10 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
           the split, the tally and every claim are public.
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
+          {feed.isLoading ? (
+            Array.from({ length: 4 }, (_, i) => <StatSkeleton key={i} />)
+          ) : (
+            <>
           <Headline label="Raises" value={String(stats.raises)} />
           <Headline label="Accepting funds" value={String(stats.open)} accent="text-amber-400" />
           <Headline
@@ -70,6 +75,8 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
             label="Paid out"
             value={stats.distributed > 0n ? `${stats.compact(stats.distributed)} ${stats.symbol}` : "—"}
           />
+            </>
+          )}
         </div>
       </header>
 
@@ -106,7 +113,9 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
         </div>
       </div>
 
-      {rows.length === 0 ? (
+      {feed.isLoading ? (
+        <FeedSkeleton />
+      ) : rows.length === 0 ? (
         query.trim() ? (
           <Empty title="Nothing matched" body={`No raise matches "${query.trim()}".`} />
         ) : (
