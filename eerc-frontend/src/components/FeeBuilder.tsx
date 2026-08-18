@@ -1,5 +1,6 @@
 import { FaLock, FaCoins, FaArrowDown } from "react-icons/fa";
 import { Panel, Figure } from "./ui/Panel";
+import { Donut, type Slice } from "./ui/Donut";
 import { ActionButton } from "./ActionButton";
 import { StyledInput } from "./StyledIntput";
 import { useFeeRouter, type SplitRow, type FeeRouterTarget } from "../hooks/useFeeRouter";
@@ -67,6 +68,23 @@ export const FeeBuilder = ({ target }: { target?: FeeRouterTarget } = {}) => {
           tone="accent"
         />
       </div>
+
+      {/* The same allocation twice, deliberately: the bar shows order and
+          the ring shows proportion, and a reader checking whether one party
+          takes most of a raise sees it faster as an arc. */}
+      {fr.rows.length > 1 && (
+        <div className="mb-4">
+          <Donut
+            slices={fr.rows.map((row) => ({
+              label: row.label || row.category,
+              value: row.bps,
+              color: CATEGORY_COLORS[row.category] ?? "var(--cat-custom)",
+            })) as Slice[]}
+            centre="100%"
+            caption="Payout split"
+          />
+        </div>
+      )}
 
       <div className="flex h-2.5 rounded-[var(--r-control)] overflow-hidden mb-4 bg-[var(--snow-sunk)] border border-[var(--rule)]">
         {fr.rows.map((row) => (

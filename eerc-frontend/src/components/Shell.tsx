@@ -60,6 +60,11 @@ export const Shell = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row font-mono text-[var(--ink)]">
+      {/* Keyboard users land on the rail on every navigation otherwise, and
+          the rail is eleven links deep before the content starts. */}
+      <a href="#content" className="skip-link">
+        Skip to content
+      </a>
       {/* ---- mobile bar ---- */}
       <div className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-2.5 border-b border-[var(--rule)] bg-[var(--sheet)]">
         <button
@@ -79,6 +84,7 @@ export const Shell = ({ children }: { children: React.ReactNode }) => {
       </div>
 
       <Rail open={open} />
+      <BottomNav />
 
       {/* ---- content ---- */}
       <div className="flex-1 min-w-0 flex flex-col">
@@ -88,6 +94,7 @@ export const Shell = ({ children }: { children: React.ReactNode }) => {
             arrives rather than snapping into place. 180ms, and nothing at all
             under prefers-reduced-motion. */}
         <main
+          id="content"
           key={location.pathname}
           className="flex-1 px-4 sm:px-6 py-6 w-full max-w-[1600px] settle"
         >
@@ -98,6 +105,42 @@ export const Shell = ({ children }: { children: React.ReactNode }) => {
     </div>
   );
 };
+
+/**
+ * Mobile navigation.
+ *
+ * The drawer is fine for the long tail, but on a phone the four things
+ * someone actually moves between should be one thumb away rather than two
+ * taps behind a menu. Hidden entirely at desktop width, where the rail
+ * already does this job.
+ */
+const BottomNav = () => (
+  <nav
+    className="lg:hidden fixed bottom-0 inset-x-0 z-30 grid grid-cols-4 border-t border-[var(--rule)] bg-[var(--sheet)]"
+    aria-label="Primary"
+  >
+    {[
+      { to: "/", label: "Raises", icon: <FaStream />, end: true },
+      { to: "/portfolio", label: "Portfolio", icon: <FaWallet />, end: false },
+      { to: "/start", label: "Start", icon: <FaPlus />, end: false },
+      { to: "/activity", label: "Activity", icon: <FaBell />, end: false },
+    ].map((t) => (
+      <NavLink
+        key={t.to}
+        to={t.to}
+        end={t.end}
+        className={({ isActive }) =>
+          `flex flex-col items-center gap-1 py-2 text-[length:var(--t-fine)] transition-colors ${
+            isActive ? "text-[var(--falu)]" : "text-[var(--ink-3)]"
+          }`
+        }
+      >
+        <span className="text-[13px]">{t.icon}</span>
+        {t.label}
+      </NavLink>
+    ))}
+  </nav>
+);
 
 /* ------------------------------------------------------------------ rail */
 
@@ -304,7 +347,7 @@ const StatusBar = () => {
   const { data: block } = useBlockNumber({ watch: true });
 
   return (
-    <footer className="mt-auto border-t border-[var(--rule)] bg-[var(--sheet)] px-4 sm:px-6 py-2 flex items-center gap-x-5 gap-y-1 flex-wrap text-[length:var(--t-fine)] text-[var(--ink-3)]">
+    <footer className="mt-auto border-t border-[var(--rule)] bg-[var(--sheet)] px-4 sm:px-6 py-2 pb-16 lg:pb-2 flex items-center gap-x-5 gap-y-1 flex-wrap text-[length:var(--t-fine)] text-[var(--ink-3)]">
       <span className="flex items-center gap-1.5">
         <FaCircle className="text-[7px] text-[var(--gain)]" aria-hidden="true" />
         chain {chainId}

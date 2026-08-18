@@ -729,3 +729,22 @@ input[type="number"] {
 @media (prefers-reduced-motion: reduce) {
   .spin, .toast, .toast__bar, .ticked, .settle { animation: none !important; }
 }
+
+/* Skip link: off-screen until focused, then a real target at the top left. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--falu);
+  color: var(--snow);
+  padding: 0.5rem 0.875rem;
+  font-size: var(--t-fine);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+.skip-link:focus {
+  left: 0;
+}

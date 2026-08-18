@@ -15,12 +15,14 @@ import { Shell } from "./components/Shell";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { CommandPalette } from "./components/CommandPalette";
 import { Shortcuts } from "./components/Shortcuts";
+import { Tour } from "./components/Tour";
 
 export default function App() {
   return (
     <Shell>
       <CommandPalette />
       <Shortcuts />
+      <Tour />
       {/* Scoped to the routed view: the rail and the chrome stay usable
           when one screen throws. */}
       <ErrorBoundary label="route">

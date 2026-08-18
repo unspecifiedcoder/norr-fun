@@ -4,6 +4,7 @@ import { usePublicClient, useChainId } from "wagmi";
 import { parseAbiItem, formatUnits } from "viem";
 import { Panel } from "./ui/Panel";
 import { Avatar } from "./ui/Avatar";
+import { Donut, type Slice } from "./ui/Donut";
 import { short, compact } from "./ui/format";
 
 const TRANSFER = parseAbiItem(
@@ -85,6 +86,25 @@ export const Holders = ({
 
   const top = holders.slice(0, 5).reduce((sum, h) => sum + h.share, 0);
 
+  /**
+   * Concentration, as a shape.
+   *
+   * The top five get their own arc and the rest are folded into a remainder:
+   * beyond that the slices are too thin to read and the legend turns into a
+   * second copy of the table below it.
+   */
+  const RING = [
+    "var(--cat-creator)", "var(--cat-partner)", "var(--cat-marketing)",
+    "var(--cat-liquidity)", "var(--cat-treasury)",
+  ];
+  const slices: Slice[] = holders.slice(0, 5).map((h, i) => ({
+    label: short(h.address),
+    value: h.share,
+    color: RING[i],
+  }));
+  const rest = holders.slice(5).reduce((sum, h) => sum + h.share, 0);
+  if (rest > 0) slices.push({ label: `${holders.length - 5} others`, value: rest, color: "var(--cat-custom)" });
+
   return (
     <Panel
       title={`Holders${holders.length ? ` · ${holders.length}` : ""}`}
@@ -104,6 +124,16 @@ export const Holders = ({
 
       {error && (
         <p className="text-[length:var(--t-fine)] text-[var(--falu)] px-3.5 py-2.5">{error}</p>
+      )}
+
+      {holders.length > 1 && (
+        <div className="px-3.5 py-4 border-b border-[var(--rule)]">
+          <Donut
+            slices={slices}
+            centre={`${holders.length}`}
+            caption={`Holder concentration across ${holders.length} wallets`}
+          />
+        </div>
       )}
 
       {holders.length === 0 ? (
