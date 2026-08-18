@@ -31,6 +31,28 @@ export const Profile = () => {
   const created = feed.rows.filter((r) => r.launch.creator.toLowerCase() === lower);
   const isYou = connected?.toLowerCase() === lower;
 
+  /**
+   * What this creator's launches have actually done.
+   *
+   * A profile that only counts raises rewards volume; these are the figures
+   * that separate a creator who shipped something from one who deployed a lot
+   * of empty contracts — how much was raised, how much of it has reached its
+   * recipients, and how many rounds are still open.
+   */
+  const dashboard = {
+    raised: created.reduce((sum, r) => sum + r.raised, 0n),
+    distributed: created.reduce((sum, r) => sum + r.distributed, 0n),
+    open: created.filter((r) => !r.finalized).length,
+    tallied: created.filter((r) => r.finalized).length,
+    frozen: created.filter((r) => r.locked).length,
+    recipients: created.reduce((sum, r) => sum + r.splitCount, 0),
+    symbol: created[0]?.assetSymbol ?? "",
+  };
+  const settledPct =
+    dashboard.raised > 0n
+      ? Number((dashboard.distributed * 10_000n) / dashboard.raised) / 100
+      : 0;
+
   return (
     <div className="max-w-5xl">
       <Panel hud className="mb-4">
@@ -82,6 +104,33 @@ export const Profile = () => {
           tone="accent"
         />
       </div>
+
+      {created.length > 0 && (
+        <Panel title="As a creator" className="mb-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+            <Figure
+              label="Raised across all"
+              value={`${compact(Number(dashboard.raised) / 1e18)} ${dashboard.symbol}`}
+              tone="accent"
+            />
+            <Figure
+              label="Reached recipients"
+              value={`${compact(Number(dashboard.distributed) / 1e18)} ${dashboard.symbol}`}
+              sub={dashboard.raised > 0n ? `${settledPct.toFixed(0)}% of what was raised` : undefined}
+            />
+            <Figure
+              label="Rounds"
+              value={`${dashboard.tallied} tallied`}
+              sub={dashboard.open > 0 ? `${dashboard.open} still open` : "none open"}
+            />
+            <Figure
+              label="People paid"
+              value={String(dashboard.recipients)}
+              sub={dashboard.frozen > 0 ? `${dashboard.frozen} with frozen splits` : undefined}
+            />
+          </div>
+        </Panel>
+      )}
 
       <Panel title={`Raises started${created.length ? ` · ${created.length}` : ""}`} flush>
         {created.length === 0 ? (

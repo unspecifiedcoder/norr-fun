@@ -13,6 +13,7 @@ import { NodeStatus } from "./NodeStatus";
 import { Avatar } from "./ui/Avatar";
 import { useProtocolStats } from "../hooks/useProtocolStats";
 import { usePreferences } from "../hooks/usePreferences";
+import { useWatchAlerts } from "../hooks/useWatchAlerts";
 import { useBoards } from "../hooks/useBoards";
 import { useActivity } from "../hooks/useActivity";
 import { Live } from "./ui/Live";
@@ -59,6 +60,8 @@ export const Shell = ({ children }: { children: React.ReactNode }) => {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const { prefs } = usePreferences();
+  // Watched raises announce their own phase changes, wherever the reader is.
+  useWatchAlerts();
 
   /**
    * Display preferences are set on the document, not threaded through every
