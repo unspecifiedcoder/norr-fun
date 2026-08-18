@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { FaExchangeAlt, FaFlagCheckered, FaChartBar, FaChartLine } from "react-icons/fa";
+import {
+  FaExchangeAlt, FaFlagCheckered, FaChartBar, FaChartLine,
+  FaExclamationTriangle, FaDownload,
+} from "react-icons/fa";
 import { ActionButton } from "./ActionButton";
 import { StyledInput } from "./StyledIntput";
 import { Panel } from "./ui/Panel";
@@ -131,6 +134,28 @@ export const TradePanel = ({ m }: { m: MarketState }) => {
     );
   }
 
+  /**
+   * What this order actually costs against spot.
+   *
+   * A bonding curve has no order book to absorb size: every unit bought moves
+   * the next unit's price, so a large ticket pays well above the quoted spot.
+   * This compares the quote's average execution price with spot -- which also
+   * carries the trading fee, because that is money the order costs too.
+   *
+   * Named for what it measures rather than "price impact": on a small order
+   * the whole figure is the fee, and calling a 1% fee a 1% price move would
+   * be wrong in the direction that makes the product look worse than it is.
+   */
+  const spot = Number(m.format(m.priceX18));
+  const impact = (() => {
+    if (!m.quote || !m.amount || spot <= 0) return null;
+    const input = Number(m.amount);
+    const out = Number(m.format(m.quote.out));
+    if (!(input > 0) || !(out > 0)) return null;
+    const exec = m.side === "buy" ? input / out : out / input;
+    return ((exec - spot) / spot) * 100 * (m.side === "buy" ? 1 : -1);
+  })();
+
   const spending = m.side === "buy" ? m.baseSymbol : m.tokenSymbol;
   const receiving = m.side === "buy" ? m.tokenSymbol : m.baseSymbol;
   const balance = m.side === "buy" ? m.baseBalance : m.tokenBalance;
@@ -190,6 +215,17 @@ export const TradePanel = ({ m }: { m: MarketState }) => {
           type="number"
         />
       </label>
+
+      {m.quote && impact !== null && Math.abs(impact) >= 2 && (
+        <p
+          className="mt-3 text-[length:var(--t-fine)] flex items-start gap-2"
+          style={{ color: Math.abs(impact) >= 6 ? "var(--falu)" : "var(--ochre)" }}
+        >
+          <FaExclamationTriangle className="mt-0.5 shrink-0" />
+          You pay {impact.toFixed(1)}% above spot on this size, fee included.
+          On a curve you are the counterparty to your own order.
+        </p>
+      )}
 
       {m.quote && (
         <dl className="mt-3 panel panel--sunk panel__body text-[length:var(--t-fine)] space-y-1">
@@ -261,8 +297,43 @@ export const TradesTable = ({ m }: { m: MarketState }) => {
     );
   }
 
+  /**
+   * The tape, as a file.
+   *
+   * Reconstructed from the curve's own events, so the export is the same data
+   * the table shows and can be checked against the chain line by line. Built
+   * in the browser -- there is no server to ask for it.
+   */
+  const exportCsv = () => {
+    const header = ["side", "wallet", m.tokenSymbol || "tokens", m.baseSymbol || "base", "price", "block", "timestamp"];
+    const lines = [...m.trades].reverse().map((t) => [
+      t.side,
+      t.actor,
+      m.format(t.tokenAmount),
+      m.format(t.baseAmount),
+      (Number(t.priceX18) / 1e18).toString(),
+      t.blockNumber.toString(),
+      new Date(t.timestamp * 1000).toISOString(),
+    ]);
+    const csv = [header, ...lines].map((r) => r.join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `norr-${m.tokenSymbol || "tape"}-fills.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="overflow-x-auto">
+      <div className="flex justify-end px-3 py-2 border-b border-[var(--rule)]">
+        <button
+          onClick={exportCsv}
+          className="text-[length:var(--t-fine)] text-[var(--ink-3)] hover:text-[var(--ink)] transition-colors flex items-center gap-1.5"
+        >
+          <FaDownload className="text-[9px]" /> Export {m.trades.length} fills
+        </button>
+      </div>
       <table className="w-full text-[length:var(--t-fine)]">
         <thead>
           <tr className="border-b border-[var(--rule)]">

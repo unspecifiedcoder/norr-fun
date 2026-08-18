@@ -1,6 +1,7 @@
 import { Route, Routes, useNavigate } from "react-router-dom";
 import { CreateLaunch } from "./components/CreateLaunch";
 import { PrivateVault } from "./components/PrivateVault";
+import { Portfolio } from "./components/Portfolio";
 import { LaunchModels } from "./components/LaunchModels";
 import { Feed } from "./components/Feed";
 import { LaunchDetail } from "./components/LaunchDetail";
@@ -13,11 +14,13 @@ import { ChainGuard } from "./components/ChainGuard";
 import { Shell } from "./components/Shell";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { CommandPalette } from "./components/CommandPalette";
+import { Shortcuts } from "./components/Shortcuts";
 
 export default function App() {
   return (
     <Shell>
       <CommandPalette />
+      <Shortcuts />
       {/* Scoped to the routed view: the rail and the chrome stay usable
           when one screen throws. */}
       <ErrorBoundary label="route">
@@ -33,6 +36,7 @@ export default function App() {
 
         <Route path="/desks" element={<Boards />} />
         <Route path="/desk/:slug" element={<BoardDetail />} />
+        <Route path="/portfolio" element={<Portfolio />} />
         <Route path="/owed" element={<Earnings />} />
         <Route path="/activity" element={<Activity />} />
         <Route path="/me" element={<Profile />} />

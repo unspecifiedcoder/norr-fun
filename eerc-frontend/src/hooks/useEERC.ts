@@ -105,6 +105,15 @@ export function useEERC() {
   const [busy, setBusy] = useState<EercStep>(null);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  /**
+   * How long the last proof actually took.
+   *
+   * These operations spend twenty to sixty seconds generating a zero-knowledge
+   * proof in the browser. Without a number attached, that silence reads as a
+   * hang; with one, it reads as work — and it is the most concrete evidence
+   * on the surface that real cryptography is running rather than a mock.
+   */
+  const [lastProofMs, setLastProofMs] = useState<number | null>(null);
 
   /**
    * The convertible token, read from the chain rather than the artifact.
@@ -154,9 +163,11 @@ export function useEERC() {
       setBusy(step);
       setError("");
       setStatus(pending);
+      const started = performance.now();
       try {
         const result = await fn();
         setStatus("");
+        setLastProofMs(Math.round(performance.now() - started));
         return result;
       } catch (err) {
         setStatus("");
@@ -342,6 +353,7 @@ export function useEERC() {
       busy,
       status,
       error,
+      lastProofMs,
       clearError: () => setError(""),
     }),
     [
@@ -350,6 +362,7 @@ export function useEERC() {
       balance.decryptedBalance, balance.refetchBalance, encryptedDecimals,
       publicBalance, tokenDecimals, tokenSymbol,
       generateKey, register, deposit, transfer, withdraw, busy, status, error,
+      lastProofMs,
     ],
   );
 }

@@ -282,6 +282,21 @@ export const LaunchDetail = () => {
           >
             {m.exists ? (
               <>
+                {/* The one celebratory beat this product earns: a curve that
+                    reached its target is finished, and the panel says so as a
+                    stamp rather than a line of text. */}
+                {m.graduated && (
+                  <p
+                    className="mb-3 py-2 text-center uppercase tracking-[0.3em] font-bold border settle"
+                    style={{
+                      color: "var(--gain)",
+                      borderColor: "var(--gain)",
+                      background: "var(--gain-wash)",
+                    }}
+                  >
+                    graduated
+                  </p>
+                )}
                 <GraduationRail m={m} />
                 <p className="text-[length:var(--t-fine)] text-[var(--ink-3)] mt-2.5">
                   {m.graduated

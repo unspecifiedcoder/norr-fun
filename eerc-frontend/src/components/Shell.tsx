@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   FaPaperPlane, FaPlus, FaStream, FaUser, FaColumns,
-  FaHandHoldingUsd, FaBell, FaCog, FaSearch, FaBars, FaTimes,
+  FaHandHoldingUsd, FaBell, FaCog, FaSearch, FaBars, FaTimes, FaWallet,
   FaLock, FaLockOpen, FaBolt, FaCircle,
 } from "react-icons/fa";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
@@ -35,6 +35,7 @@ const PRIMARY = [
 ];
 
 const PERSONAL = [
+  { to: "/portfolio", label: "Portfolio", icon: <FaWallet />, end: false },
   { to: "/owed", label: "Owed to you", icon: <FaHandHoldingUsd />, end: false },
   { to: "/me", label: "Your profile", icon: <FaUser />, end: false },
   { to: "/private", label: "Private transfer", icon: <FaPaperPlane />, end: false },

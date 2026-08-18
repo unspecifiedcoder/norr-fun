@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   FaKey, FaUserCheck, FaArrowDown, FaPaperPlane, FaArrowUp, FaLock,
-  FaCheck, FaExclamationTriangle,
+  FaCheck, FaExclamationTriangle, FaCircleNotch,
 } from "react-icons/fa";
 import { Panel, Figure } from "./ui/Panel";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -115,9 +115,17 @@ const Vault = () => {
         </p>
       )}
       {e.status && (
-        <p className="panel panel__body mb-3 text-[length:var(--t-fine)] text-[var(--ink-2)]">
-          {e.status} This generates a zero-knowledge proof in the browser and
-          can take a while.
+        <p className="panel panel__body mb-3 text-[length:var(--t-fine)] text-[var(--ink-2)] flex items-center gap-2">
+          <FaCircleNotch className="spin text-[var(--falu)] shrink-0" />
+          {e.status} Generating a zero-knowledge proof in this browser.
+        </p>
+      )}
+
+      {/* The proof time, kept on screen after the fact: it is the clearest
+          evidence that the cryptography is real and not a stand-in. */}
+      {!e.status && e.lastProofMs !== null && e.lastProofMs > 1200 && (
+        <p className="text-[length:var(--t-fine)] text-[var(--ink-4)] mb-3 tabular">
+          last proof generated in {(e.lastProofMs / 1000).toFixed(1)}s, in this browser
         </p>
       )}
 

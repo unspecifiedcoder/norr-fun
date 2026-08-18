@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaSearch, FaStream, FaColumns, FaBell, FaHandHoldingUsd, FaUser,
-  FaPaperPlane, FaCog, FaPlus, FaBolt, FaLock, FaArrowRight,
+  FaPaperPlane, FaCog, FaPlus, FaBolt, FaLock, FaArrowRight, FaWallet,
 } from "react-icons/fa";
 import { useRegistryFeed } from "../hooks/useRegistryFeed";
 import { useBoards } from "../hooks/useBoards";
@@ -71,6 +71,7 @@ export const CommandPalette = () => {
       { id: "n-feed", label: "Raises", icon: <FaStream />, to: "/", group: "Go to" },
       { id: "n-desks", label: "Desks", icon: <FaColumns />, to: "/desks", group: "Go to" },
       { id: "n-activity", label: "Activity", icon: <FaBell />, to: "/activity", group: "Go to" },
+      { id: "n-portfolio", label: "Portfolio", hint: "holdings, earnings, watchlist", icon: <FaWallet />, to: "/portfolio", group: "Go to", keywords: "holdings watchlist saved" },
       { id: "n-owed", label: "Owed to you", icon: <FaHandHoldingUsd />, to: "/owed", group: "Go to" },
       { id: "n-me", label: "Your profile", icon: <FaUser />, to: "/me", group: "Go to" },
       { id: "n-transfer", label: "Private transfer", icon: <FaPaperPlane />, to: "/private", group: "Go to" },
