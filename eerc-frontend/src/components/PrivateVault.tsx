@@ -57,7 +57,19 @@ const Vault = () => {
     { key: "key", label: "Decryption key", done: e.isDecryptionKeySet, icon: <FaKey /> },
     { key: "register", label: "Registered", done: e.isRegistered, icon: <FaUserCheck /> },
     { key: "funds", label: "Encrypted funds", done: e.encryptedRaw > 0n, icon: <FaLock /> },
-  ];
+  ] as const;
+
+  const balanceLabel = e.unreadable
+    ? "unreadable"
+    : e.isDecryptionKeySet
+      ? `${e.encrypted} ${e.symbol}`
+      : "sealed";
+
+  const balanceNote = e.unreadable
+    ? "a stored ciphertext will not decrypt with this key"
+    : e.isDecryptionKeySet
+      ? undefined
+      : "derive your key to read it";
 
   return (
     <div className="max-w-4xl">
@@ -112,8 +124,8 @@ const Vault = () => {
       <div className="grid grid-cols-2 gap-2.5 mb-4">
         <Figure
           label="Encrypted balance"
-          value={e.isDecryptionKeySet ? `${e.encrypted} ${e.symbol}` : "sealed"}
-          sub={e.isDecryptionKeySet ? undefined : "derive your key to read it"}
+          value={balanceLabel}
+          sub={balanceNote}
           tone="accent"
           emissive
         />

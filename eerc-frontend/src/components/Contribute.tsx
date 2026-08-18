@@ -131,7 +131,7 @@ const ContributePanel = ({
           <div className="mt-3">
             <ActionButton
               onClick={async () => {
-                const result = await e.transfer(vault, amount, "norr.fun contribution");
+                const result = await e.transfer(vault, amount);
                 if (result) {
                   setReceipt(result.transactionHash);
                   setAmount("");

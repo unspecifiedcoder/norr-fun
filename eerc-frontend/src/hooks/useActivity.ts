@@ -40,15 +40,22 @@ export function useActivity(scopeToSelf = true) {
   const registry = getRegistry(chainId);
   const feed = useRegistryFeed("newest", 100);
 
-  const [items, setItems] = useState<ActivityItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const load = useCallback(async () => {
-    if (!publicClient || !registry) return;
-    setLoading(true);
-    setError("");
-    try {
+  /**
+   * One scan, shared.
+   *
+   * This used to be `useState` + `useEffect` per consumer, which meant the
+   * notification badge in the shell and the activity page each ran their own
+   * multi-contract log scan on every route. They raced, and the badge lost --
+   * it reported zero while the page listed seven entries, which is worse than
+   * having no badge at all.
+   *
+   * Held in the query cache instead, keyed by what actually changes the
+   * result, so both read the same array and the count cannot disagree with
+   * the list it counts.
+   */
+  const load = useCallback(async (): Promise<ActivityItem[]> => {
+    if (!publicClient || !registry) return [];
+    {
       const routers = feed.rows.map((r) => r.launch.feeRouter as `0x${string}`);
       const sales = feed.rows.map((r) => r.launch.ido as `0x${string}`);
       const nameOf = (addr: string) =>
@@ -174,19 +181,102 @@ export function useActivity(scopeToSelf = true) {
       }
 
       collected.sort((a, b) => (b.blockNumber > a.blockNumber ? 1 : b.blockNumber < a.blockNumber ? -1 : 0));
-      setItems(collected);
-    } catch (err) {
-      const e = err as { shortMessage?: string; message?: string };
-      setError(e.shortMessage ?? e.message ?? String(err));
-    } finally {
-      setLoading(false);
+      return collected;
     }
   }, [publicClient, registry, feed.rows, address, scopeToSelf]);
 
-  useEffect(() => {
-    if (feed.rows.length > 0 || registry) void load();
-    // load() already closes over everything it needs.
-  }, [load, feed.rows.length, registry]);
+  /**
+   * One scan per scope, shared by every consumer.
+   *
+   * The shell's notification badge and the activity page both read this. When
+   * each ran its own scan they raced and disagreed -- the badge reported zero
+   * beside a page listing thirteen entries.
+   *
+   * Deliberately a small module-level cache rather than react-query: this
+   * project resolves two copies of that library (its own and the one inside
+   * the wallet stack), and a hook bound to the wrong copy throws
+   * `observer.getOptimisticResult is not a function` from the shell, taking
+   * the whole app down. Twenty lines here cannot pick the wrong instance.
+   *
+   * The key is what identifies the answer -- chain, scope, address -- and
+   * never how many raises happened to be loaded when a consumer mounted.
+   * Including that count previously let a scan over zero raises win the cache.
+   */
+  const key = `${chainId}:${scopeToSelf ? (address ?? "none") : "all"}`;
+  const ready = !!publicClient && !!registry && !feed.isLoading;
 
-  return { items, loading, error, isConnected, hasRegistry: !!registry, chainId, reload: load };
+  const [snapshot, setSnapshot] = useState<Snapshot>(() => read(key));
+
+  useEffect(() => {
+    const unsubscribe = subscribe(key, setSnapshot);
+    if (ready) void ensure(key, load);
+    return unsubscribe;
+  }, [key, ready, load]);
+
+  return {
+    items: snapshot.items,
+    loading: snapshot.loading,
+    error: snapshot.error,
+    isConnected,
+    hasRegistry: !!registry,
+    chainId,
+    reload: () => refresh(key, load),
+  };
 }
+
+/* ------------------------------------------------------------------ cache */
+
+type Snapshot = { items: ActivityItem[]; loading: boolean; error: string };
+
+const EMPTY: Snapshot = { items: [], loading: false, error: "" };
+
+const store = new Map<string, Snapshot>();
+const listeners = new Map<string, Set<(s: Snapshot) => void>>();
+const inflight = new Map<string, Promise<void>>();
+
+const read = (key: string): Snapshot => store.get(key) ?? EMPTY;
+
+const publish = (key: string, next: Snapshot) => {
+  store.set(key, next);
+  listeners.get(key)?.forEach((fn) => fn(next));
+};
+
+const subscribe = (key: string, fn: (s: Snapshot) => void) => {
+  if (!listeners.has(key)) listeners.set(key, new Set());
+  listeners.get(key)!.add(fn);
+  fn(read(key));
+  return () => {
+    listeners.get(key)?.delete(fn);
+  };
+};
+
+const run = async (key: string, load: () => Promise<ActivityItem[]>) => {
+  publish(key, { ...read(key), loading: true, error: "" });
+  try {
+    publish(key, { items: await load(), loading: false, error: "" });
+  } catch (err) {
+    const e = err as { shortMessage?: string; message?: string };
+    publish(key, {
+      ...read(key),
+      loading: false,
+      error: e.shortMessage ?? e.message ?? String(err),
+    });
+  } finally {
+    inflight.delete(key);
+  }
+};
+
+/** Scan once per key; concurrent mounts join the scan already running. */
+const ensure = (key: string, load: () => Promise<ActivityItem[]>) => {
+  if (store.has(key) || inflight.has(key)) return inflight.get(key);
+  const p = run(key, load);
+  inflight.set(key, p);
+  return p;
+};
+
+const refresh = (key: string, load: () => Promise<ActivityItem[]>) => {
+  if (inflight.has(key)) return inflight.get(key);
+  const p = run(key, load);
+  inflight.set(key, p);
+  return p;
+};

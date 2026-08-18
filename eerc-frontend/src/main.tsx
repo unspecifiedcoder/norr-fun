@@ -47,7 +47,13 @@ const connectors = connectorsForWallets(
   [
     {
       groupName: "Installed",
-      wallets: [injectedWallet, metaMaskWallet],
+      // injectedWallet is pure EIP-1193 and needs no WalletConnect project.
+      // metaMaskWallet does -- it builds a WalletConnect connector for mobile
+      // deep-linking and throws on load without one -- so it is offered only
+      // when that project id exists.
+      wallets: walletConnectProjectId
+        ? [injectedWallet, metaMaskWallet]
+        : [injectedWallet],
     },
     {
       groupName: "More",

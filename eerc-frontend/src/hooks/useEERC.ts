@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   useAccount, useChainId, usePublicClient, useReadContract, useReadContracts,
-  useWalletClient,
+  useWalletClient, useWriteContract,
 } from "wagmi";
 import { formatUnits, parseUnits } from "viem";
 import { useEERC as useEERCSDK } from "@avalabs/eerc-sdk";
@@ -68,6 +68,7 @@ export function useEERC() {
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
+  const { writeContractAsync } = useWriteContract();
 
   const deployment = getEerc(chainId);
   const contract = deployment?.encryptedERC;
@@ -136,6 +137,18 @@ export function useEERC() {
   const tokenDecimals = (tokenMeta?.[0]?.result as number | undefined) ?? 18;
   const tokenSymbol = (tokenMeta?.[1]?.result as string | undefined) ?? deployment?.symbol ?? "";
 
+  /**
+   * The two sides of a converter keep different precision, and which one an
+   * amount belongs to depends on the operation.
+   *
+   * A deposit is denominated in the public ERC20 (eighteen places here); a
+   * transfer or a withdrawal is denominated in the encrypted token (two).
+   * Scaling a transfer by the ERC20's decimals asks to move a hundred
+   * thousand billion base units and the contract rejects it as an invalid
+   * amount -- which is exactly what happened before this distinction existed.
+   */
+  const encryptedDecimals = Number(balance.decimals ?? 2n);
+
   const run = useCallback(
     async <T,>(step: EercStep, pending: string, fn: () => Promise<T>): Promise<T | undefined> => {
       setBusy(step);
@@ -189,17 +202,53 @@ export function useEERC() {
     [run, eerc, contract, address, chainId],
   );
 
+  /**
+   * Convert public tokens into an encrypted balance.
+   *
+   * The approval is ours to make. The SDK checks the allowance and refuses
+   * with "Insufficient approval amount!" rather than requesting one, so a
+   * deposit from a wallet that had never approved this contract failed with a
+   * message about an allowance the interface had given no way to grant.
+   *
+   * Approved for exactly the amount being deposited rather than an unbounded
+   * allowance: this contract keeps custody of real value, and an infinite
+   * approval left behind by a one-off deposit is a standing risk the user
+   * never agreed to.
+   */
   const deposit = useCallback(
     async (amount: string) => {
-      if (!deployment) return;
+      if (!deployment || !publicClient || !address || !token) return;
       return run("deposit", "Converting public tokens into encrypted ones…", async () => {
         const value = parseUnits(amount, tokenDecimals);
+
+        const allowance = (await publicClient.readContract({
+          address: token,
+          abi: erc20Abi,
+          functionName: "allowance",
+          args: [address, deployment.encryptedERC as `0x${string}`],
+        })) as bigint;
+
+        if (allowance < value) {
+          setStatus("Approving the encrypted token to take the deposit…");
+          const hash = await writeContractAsync({
+            address: token,
+            abi: erc20Abi,
+            functionName: "approve",
+            args: [deployment.encryptedERC as `0x${string}`, value],
+          });
+          await publicClient.waitForTransactionReceipt({ hash });
+        }
+
+        setStatus("Proving the deposit…");
         const result = await balance.deposit(value);
         await Promise.all([refetchPublic(), balance.refetchBalance()]);
         return result;
       });
     },
-    [run, balance, deployment, tokenDecimals, refetchPublic],
+    [
+      run, balance, deployment, tokenDecimals, refetchPublic, publicClient,
+      address, token, writeContractAsync,
+    ],
   );
 
   /**
@@ -210,7 +259,7 @@ export function useEERC() {
    * rather than after the wallet prompt.
    */
   const transfer = useCallback(
-    async (to: string, amount: string, message?: string) => {
+    async (to: string, amount: string) => {
       if (!deployment) return;
       return run("transfer", "Generating the transfer proof…", async () => {
         const check = await eerc.isAddressRegistered(to as `0x${string}`);
@@ -219,20 +268,25 @@ export function useEERC() {
             "That address is not registered on the encrypted token, so no transfer proof can be built for it.",
           );
         }
-        const value = parseUnits(amount, tokenDecimals);
-        const result = await balance.privateTransfer(to, value, message);
+        const value = parseUnits(amount, encryptedDecimals);
+        // No message argument. The SDK switches to a five-argument
+        // `transfer(..., string)` when one is supplied, and this deployment's
+        // EncryptedERC only declares the four-argument form -- so a message
+        // silently selected a function that does not exist and the
+        // transaction reverted with an unrecognised selector.
+        const result = await balance.privateTransfer(to, value);
         await balance.refetchBalance();
         return result;
       });
     },
-    [run, eerc, balance, deployment, tokenDecimals],
+    [run, eerc, balance, deployment, encryptedDecimals],
   );
 
   const withdraw = useCallback(
     async (amount: string) => {
       if (!deployment) return;
       return run("withdraw", "Proving and withdrawing…", async () => {
-        const value = parseUnits(amount, tokenDecimals);
+        const value = parseUnits(amount, encryptedDecimals);
         const result = await balance.withdraw(value);
         await Promise.all([refetchPublic(), balance.refetchBalance()]);
         return result;
@@ -254,9 +308,28 @@ export function useEERC() {
       isAuditorKeySet: eerc.isAuditorKeySet,
       symbol: tokenSymbol,
       decimals: tokenDecimals,
-      /** Balances. */
-      encrypted: balance.parsedDecryptedBalance ?? "0",
+      /**
+       * Balances.
+       *
+       * The SDK reports -1n when a balance cannot be reconciled — either the
+       * ElGamal point disagrees with the summed PCTs, or one of the PCTs was
+       * written for a different key and will not decrypt. Both mean the same
+       * thing to a reader: this balance is not readable with this key, and
+       * showing a zero instead would be a lie about their funds.
+       */
+      unreadable: (balance.decryptedBalance ?? 0n) < 0n,
+      /**
+       * Formatted with the *encrypted* token's own decimals.
+       *
+       * The encrypted side of a converter keeps its own precision -- two
+       * decimal places here, against the ERC20's eighteen. Depositing 100
+       * tokens therefore stores 10000 base units, and printing that raw next
+       * to a public balance of 900 in the same symbol reads as though the
+       * deposit multiplied the holding by a hundred.
+       */
+      encrypted: formatUnits(balance.decryptedBalance ?? 0n, encryptedDecimals),
       encryptedRaw: balance.decryptedBalance ?? 0n,
+      encryptedDecimals,
       publicBalance: (publicBalance as bigint | undefined) ?? 0n,
       formatPublic: (v: bigint) => formatUnits(v, tokenDecimals),
       refetchBalance: balance.refetchBalance,
@@ -274,8 +347,8 @@ export function useEERC() {
     [
       deployment, chainId, address, eerc.isInitialized, eerc.isRegistered,
       eerc.isDecryptionKeySet, eerc.isAuditorKeySet, balance.parsedDecryptedBalance,
-      balance.decryptedBalance, balance.refetchBalance, publicBalance,
-      tokenDecimals, tokenSymbol,
+      balance.decryptedBalance, balance.refetchBalance, encryptedDecimals,
+      publicBalance, tokenDecimals, tokenSymbol,
       generateKey, register, deposit, transfer, withdraw, busy, status, error,
     ],
   );
