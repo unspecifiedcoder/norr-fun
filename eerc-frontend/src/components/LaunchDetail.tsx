@@ -29,6 +29,7 @@ import { ProofVerifier } from "./ProofVerifier";
 import { PrivacyLedger } from "./PrivacyLedger";
 import { Timeline } from "./Timeline";
 import { ShareCard } from "./ShareCard";
+import { PriceAlert } from "./PriceAlert";
 import { getMarket } from "../hooks/useMarket";
 
 type Tab = "trades" | "comments" | "holders" | "split" | "promote" | "privacy";
@@ -360,6 +361,15 @@ export const LaunchDetail = () => {
           <Contribute vault={launch.creator} finalized={sale.finalized} />
 
           {m.exists && <TradePanel m={m} />}
+
+          {m.exists && (
+            <PriceAlert
+              sale={launch.ido}
+              name={launch.symbol}
+              price={spot}
+              symbol={m.baseSymbol}
+            />
+          )}
 
           <IdoClaim target={{ ido: launch.ido, projectToken: launch.projectToken }} />
 

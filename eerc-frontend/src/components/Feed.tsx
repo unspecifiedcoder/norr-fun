@@ -77,10 +77,10 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
    */
   const viewQuery = (() => {
     const own = new URLSearchParams();
-    const sort = params.get("sort");
-    const q = params.get("q");
-    if (sort) own.set("sort", sort);
-    if (q) own.set("q", q);
+    for (const key of ["sort", "q", "phase", "desk"]) {
+      const value = params.get(key);
+      if (value) own.set(key, value);
+    }
     return own.toString();
   })();
 
@@ -100,6 +100,17 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
   const { boards } = useBoards();
   const promoted = usePromoted(useMemo(() => feed.rows.map((r) => r.launch.ido), [feed.rows]));
 
+  /**
+   * Narrowing beyond the sort pills.
+   *
+   * The pills answer "in what order"; these answer "which ones at all" —
+   * whether a round is still taking money, whether a token has a market yet,
+   * and which desk published it. Kept in the URL like everything else, so a
+   * narrowed feed is a link and a saved view captures it for free.
+   */
+  const phase = params.get("phase") ?? "any";
+  const desk = params.get("desk") ?? "any";
+
   const setParam = (key: string, value: string) => {
     const next = new URLSearchParams(params);
     if (value) next.set(key, value);
@@ -111,7 +122,7 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
   // finds its raise as readily as a typed name.
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const matched = !q
+    let matched = !q
       ? feed.rows
       : feed.rows.filter((r) =>
           [r.launch.name, r.launch.symbol, r.launch.description, r.launch.ido, r.launch.creator]
@@ -120,6 +131,13 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
             .includes(q),
         );
 
+    if (phase === "accepting") matched = matched.filter((r) => !r.finalized);
+    if (phase === "claiming") matched = matched.filter((r) => r.finalized);
+    if (phase === "frozen") matched = matched.filter((r) => r.locked);
+
+    if (desk === "none") matched = matched.filter((r) => r.launch.boardId === 0n);
+    else if (desk !== "any") matched = matched.filter((r) => r.launch.boardId.toString() === desk);
+
     // Paid slots ride above the chosen sort rather than replacing it: within
     // each group the reader's ordering still holds, and every promoted card
     // is labelled, so placement is visible rather than merely effective.
@@ -127,7 +145,7 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
       (a, b) =>
         Number(promoted.isPromoted(b.launch.ido)) - Number(promoted.isPromoted(a.launch.ido)),
     );
-  }, [feed.rows, query, promoted]);
+  }, [feed.rows, query, promoted, phase, desk]);
 
   if (!feed.hasRegistry) {
     return (
@@ -187,8 +205,7 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
                   // Applied over whatever else the URL carries, so restoring a
                   // view never drops the dev-wallet flags mid-session.
                   const next = new URLSearchParams(params);
-                  next.delete("sort");
-                  next.delete("q");
+                  ["sort", "q", "phase", "desk"].forEach((k) => next.delete(k));
                   new URLSearchParams(v.query).forEach((value, key) => next.set(key, value));
                   setParams(next, { replace: true });
                 }}
@@ -213,6 +230,33 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
         <Pills options={LENSES} value={lens} onChange={(v) => setParam("sort", v)} label="Sort raises" />
 
         <div className="flex items-center gap-3 flex-wrap">
+          <select
+            value={phase}
+            onChange={(e) => setParam("phase", e.target.value === "any" ? "" : e.target.value)}
+            aria-label="Filter by phase"
+            className="bg-[var(--snow-sunk)] border border-[var(--rule)] rounded-[var(--r-control)] px-2 py-1.5 text-[length:var(--t-fine)] text-[var(--ink)] outline-none"
+          >
+            <option value="any">Any phase</option>
+            <option value="accepting">Accepting funds</option>
+            <option value="claiming">Tally published</option>
+            <option value="frozen">Splits frozen</option>
+          </select>
+
+          <select
+            value={desk}
+            onChange={(e) => setParam("desk", e.target.value === "any" ? "" : e.target.value)}
+            aria-label="Filter by desk"
+            className="bg-[var(--snow-sunk)] border border-[var(--rule)] rounded-[var(--r-control)] px-2 py-1.5 text-[length:var(--t-fine)] text-[var(--ink)] outline-none"
+          >
+            <option value="any">Any desk</option>
+            <option value="none">Published solo</option>
+            {boards.map((b) => (
+              <option key={b.slug} value={b.id.toString()}>
+                /{b.slug}
+              </option>
+            ))}
+          </select>
+
           <label className="relative">
             <FaSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[length:var(--t-fine)] text-[var(--ink-4)]" />
             <input
