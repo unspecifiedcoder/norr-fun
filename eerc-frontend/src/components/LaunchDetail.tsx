@@ -17,7 +17,7 @@ import { Panel, Chip } from "./ui/Panel";
 import { Tabs, Meter } from "./ui/Controls";
 import { Avatar } from "./ui/Avatar";
 import { CopyButton } from "./ui/Live";
-import { short, compact, price as fmtPrice, pct } from "./ui/format";
+import { short, compact, price as fmtPrice, pct, date } from "./ui/format";
 import { MarketChart, TradePanel, TradesTable, GraduationRail } from "./Market";
 import { FeeBuilder } from "./FeeBuilder";
 import { IdoClaim } from "./IdoClaim";
@@ -194,7 +194,7 @@ export const LaunchDetail = () => {
               {desk && <Meta label="Desk" value={`/${desk.slug}`} to={`/desk/${desk.slug}`} />}
               <Meta
                 label="Opened"
-                value={new Date(Number(launch.createdAt) * 1000).toLocaleDateString()}
+                value={date(Number(launch.createdAt))}
               />
               <Meta label="Share" value="copy link" copy={shareUrl} />
               <ShareCard

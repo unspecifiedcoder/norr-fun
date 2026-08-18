@@ -15,6 +15,7 @@ import { usePreferences } from "../hooks/usePreferences";
 import { useBoards } from "../hooks/useBoards";
 import { useActivity } from "../hooks/useActivity";
 import { Live } from "./ui/Live";
+import { setDisplayPrefs } from "./ui/format";
 
 /**
  * Application shell.
@@ -64,7 +65,11 @@ export const Shell = ({ children }: { children: React.ReactNode }) => {
     const root = document.documentElement;
     root.dataset.density = prefs.density;
     root.dataset.contrast = prefs.highContrast ? "high" : "normal";
-  }, [prefs.density, prefs.highContrast]);
+    setDisplayPrefs({
+      compactNumbers: prefs.compactNumbers,
+      dateFormat: prefs.dateFormat,
+    });
+  }, [prefs.density, prefs.highContrast, prefs.compactNumbers, prefs.dateFormat]);
 
   // A drawer that survives navigation traps the reader behind their own menu.
   useEffect(() => {

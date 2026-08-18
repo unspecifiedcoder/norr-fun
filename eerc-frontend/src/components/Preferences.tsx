@@ -90,6 +90,40 @@ export const Preferences = () => {
 
         <div className="border-t border-[var(--rule)] my-4" />
 
+        <Row
+          label="Large numbers"
+          hint="Abbreviated scans faster in a feed; full is what reconciling a payout needs."
+        >
+          <Segmented
+            options={[
+              { value: "compact" as const, label: "1.0K" },
+              { value: "full" as const, label: "1,000" },
+            ]}
+            value={prefs.compactNumbers ? "compact" : "full"}
+            onChange={(v) => set("compactNumbers", v === "compact")}
+            label="Number format"
+          />
+        </Row>
+
+        <div className="border-t border-[var(--rule)] my-4" />
+
+        <Row
+          label="Dates"
+          hint="8/9/2026 means two different days depending on where the reader is. ISO does not."
+        >
+          <Segmented
+            options={[
+              { value: "local" as const, label: "Local" },
+              { value: "iso" as const, label: "ISO" },
+            ]}
+            value={prefs.dateFormat}
+            onChange={(v) => set("dateFormat", v)}
+            label="Date format"
+          />
+        </Row>
+
+        <div className="border-t border-[var(--rule)] my-4" />
+
         <Row label="Shorten addresses" hint="Show 0x1234…abcd instead of the full address.">
           <Toggle
             on={prefs.abbreviateAddresses}

@@ -25,6 +25,22 @@ export type Preferences = {
    * exactly where a demo gets seen.
    */
   highContrast: boolean;
+  /**
+   * Whether large figures are abbreviated.
+   *
+   * "1.0K AVAXTEST" scans faster in a feed; "1,000.00" is what someone
+   * reconciling a payout needs. Both are correct and neither is right for
+   * everyone, so it is a choice rather than a house rule.
+   */
+  compactNumbers: boolean;
+  /**
+   * Dates as the locale writes them, or ISO.
+   *
+   * A launch date is read by people in several timezones comparing notes, and
+   * 8/9/2026 means two different days depending on where the reader is. ISO
+   * removes the ambiguity for anyone who wants it.
+   */
+  dateFormat: "local" | "iso";
 };
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -33,6 +49,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   abbreviateAddresses: true,
   density: "comfortable",
   highContrast: false,
+  compactNumbers: true,
+  dateFormat: "local",
 };
 
 const KEY = "norr.preferences.v1";

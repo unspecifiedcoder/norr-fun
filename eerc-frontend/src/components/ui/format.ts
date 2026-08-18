@@ -11,11 +11,37 @@ export const short = (a?: string, head = 6, tail = 4) =>
   !a ? "—" : a.length <= head + tail + 1 ? a : `${a.slice(0, head)}…${a.slice(-tail)}`;
 
 /**
+ * Display preferences, mirrored for the pure formatters.
+ *
+ * `compact` and `date` are used in dozens of render paths, most of them deep
+ * inside components that have no business subscribing to a preferences hook
+ * just to print a number. The Shell publishes the current values here when
+ * they change; the formatters read them synchronously. It is a deliberate
+ * escape hatch, kept to exactly two values.
+ */
+let displayPrefs = { compactNumbers: true, dateFormat: "local" as "local" | "iso" };
+
+export const setDisplayPrefs = (next: typeof displayPrefs) => {
+  displayPrefs = next;
+};
+
+/** A date, written the way the reader asked for. */
+export const date = (unixSeconds: number | bigint): string => {
+  const d = new Date(Number(unixSeconds) * 1000);
+  return displayPrefs.dateFormat === "iso"
+    ? d.toISOString().slice(0, 10)
+    : d.toLocaleDateString();
+};
+
+/**
  * Compact a magnitude the way a ticker does. Two significant places below
  * a thousand, because a price of "0" tells the reader nothing.
  */
 export const compact = (n: number): string => {
   if (!Number.isFinite(n)) return "—";
+  if (!displayPrefs.compactNumbers) {
+    return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  }
   const abs = Math.abs(n);
   if (abs >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
   if (abs >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
