@@ -282,6 +282,16 @@ export const TradePanel = ({ m }: { m: MarketState }) => {
  * them up would hide the move.
  */
 export const TradesTable = ({ m }: { m: MarketState }) => {
+  /**
+   * The tape, filtered and ordered.
+   *
+   * Newest-first is the right default — a tape is a record of what just
+   * happened — but the two questions a reader has next are "who bought" and
+   * "what were the big ones", and neither is answerable by scrolling a
+   * chronological list of fifty rows.
+   */
+  const [side, setSide] = useState<"all" | "buy" | "sell">("all");
+  const [order, setOrder] = useState<"recent" | "size">("recent");
   if (!m.exists) {
     return (
       <p className="text-[length:var(--t-base)] text-[var(--ink-3)] p-4">
@@ -324,15 +334,48 @@ export const TradesTable = ({ m }: { m: MarketState }) => {
     URL.revokeObjectURL(url);
   };
 
+  const rows = (() => {
+    const filtered = side === "all" ? m.trades : m.trades.filter((t) => t.side === side);
+    const ordered =
+      order === "size"
+        ? [...filtered].sort((a, b) => (b.baseAmount > a.baseAmount ? 1 : b.baseAmount < a.baseAmount ? -1 : 0))
+        : [...filtered].reverse();
+    return ordered.slice(0, 50);
+  })();
+
   return (
     <div className="overflow-x-auto">
-      <div className="flex justify-end px-3 py-2 border-b border-[var(--rule)]">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--rule)] flex-wrap">
+        <Segmented
+          options={[
+            { value: "all" as const, label: "All" },
+            { value: "buy" as const, label: "Buys" },
+            { value: "sell" as const, label: "Sells" },
+          ]}
+          value={side}
+          onChange={setSide}
+          label="Filter fills by side"
+        />
+        <Segmented
+          options={[
+            { value: "recent" as const, label: "Recent" },
+            { value: "size" as const, label: "Largest" },
+          ]}
+          value={order}
+          onChange={setOrder}
+          label="Order fills"
+        />
+        <span className="text-[length:var(--t-fine)] text-[var(--ink-4)] tabular">
+          {rows.length} of {m.trades.length}
+        </span>
+        <span className="ml-auto">
         <button
           onClick={exportCsv}
           className="text-[length:var(--t-fine)] text-[var(--ink-3)] hover:text-[var(--ink)] transition-colors flex items-center gap-1.5"
         >
           <FaDownload className="text-[9px]" /> Export {m.trades.length} fills
         </button>
+        </span>
       </div>
       <table className="w-full text-[length:var(--t-fine)]">
         <thead>
@@ -346,7 +389,7 @@ export const TradesTable = ({ m }: { m: MarketState }) => {
           </tr>
         </thead>
         <tbody>
-          {[...m.trades].reverse().slice(0, 50).map((t, i) => (
+          {rows.map((t, i) => (
             <tr
               key={`${t.blockNumber}-${i}`}
               className="border-b border-[var(--rule)] last:border-0 hover:bg-[var(--sheet-raised)] transition-colors"

@@ -40,6 +40,14 @@ export const Holders = ({
   const [holders, setHolders] = useState<Holder[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  /**
+   * Find a wallet in the holder set.
+   *
+   * "Am I in here, and where" is the question a holder list is actually asked,
+   * and it is unanswerable by eye past twenty rows. Matches on any part of the
+   * address so a pasted full address and a remembered prefix both work.
+   */
+  const [find, setFind] = useState("");
 
   const load = useCallback(async () => {
     if (!publicClient || !token) return;
@@ -136,19 +144,35 @@ export const Holders = ({
         </div>
       )}
 
+      {holders.length > 5 && (
+        <div className="px-3.5 py-2 border-b border-[var(--rule)]">
+          <input
+            value={find}
+            onChange={(e) => setFind(e.target.value)}
+            placeholder="Find a wallet in this list"
+            aria-label="Find a wallet among the holders"
+            className="w-full bg-[var(--snow-sunk)] border border-[var(--rule)] rounded-[var(--r-control)] px-2.5 py-1.5 text-[length:var(--t-fine)] text-[var(--ink)] placeholder:text-[var(--ink-4)] outline-none focus:border-[var(--ink-4)] transition-colors"
+          />
+        </div>
+      )}
+
       {holders.length === 0 ? (
         <p className="text-[length:var(--t-base)] text-[var(--ink-3)] p-4">
           {loading ? "Replaying transfers…" : "No holders yet."}
         </p>
       ) : (
         <ul>
-          {holders.slice(0, 25).map((h, i) => (
+          {holders
+            .map((h, i) => ({ ...h, rank: i + 1 }))
+            .filter((h) => !find.trim() || h.address.toLowerCase().includes(find.trim().toLowerCase()))
+            .slice(0, 25)
+            .map((h) => (
             <li
               key={h.address}
               className="flex items-center gap-3 px-3.5 py-2 border-b border-[var(--rule)] last:border-0 hover:bg-[var(--sheet-raised)] transition-colors"
             >
               <span className="text-[length:var(--t-fine)] text-[var(--ink-4)] w-6 tabular shrink-0">
-                {i + 1}
+                {h.rank}
               </span>
               <Avatar seed={h.address} fallback={h.address.slice(2, 4)} size={22} />
               <Link
