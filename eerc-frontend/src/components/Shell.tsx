@@ -11,6 +11,7 @@ import { Logo } from "./Logo";
 import { NodeStatus } from "./NodeStatus";
 import { Avatar } from "./ui/Avatar";
 import { useProtocolStats } from "../hooks/useProtocolStats";
+import { usePreferences } from "../hooks/usePreferences";
 import { useBoards } from "../hooks/useBoards";
 import { useActivity } from "../hooks/useActivity";
 import { Live } from "./ui/Live";
@@ -52,6 +53,18 @@ const DESK_SORTS: { key: DeskSort; label: string }[] = [
 export const Shell = ({ children }: { children: React.ReactNode }) => {
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const { prefs } = usePreferences();
+
+  /**
+   * Display preferences are set on the document, not threaded through every
+   * component: they are properties of the whole sheet, and a class on the
+   * root is the only way to change one without touching a hundred files.
+   */
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.density = prefs.density;
+    root.dataset.contrast = prefs.highContrast ? "high" : "normal";
+  }, [prefs.density, prefs.highContrast]);
 
   // A drawer that survives navigation traps the reader behind their own menu.
   useEffect(() => {

@@ -8,12 +8,31 @@ export type Preferences = {
   activityScope: "mine" | "all";
   /** Collapse long addresses to their ends. */
   abbreviateAddresses: boolean;
+  /**
+   * How tightly the sheet is packed.
+   *
+   * An operator surface is read at two distances: leaning in on one raise,
+   * and scanning a feed of them. Compact takes a step out of every panel's
+   * padding without touching the type scale, because shrinking text below the
+   * 12px floor to fit more in is the trade this design already refused.
+   */
+  density: "comfortable" | "compact";
+  /**
+   * Raise every rule and every muted ink to full strength.
+   *
+   * The palette clears AA everywhere, but hairlines at 1px in #22262b are the
+   * first thing to disappear on a projector or a bad panel -- which is
+   * exactly where a demo gets seen.
+   */
+  highContrast: boolean;
 };
 
 export const DEFAULT_PREFERENCES: Preferences = {
   slippagePct: "1",
   activityScope: "mine",
   abbreviateAddresses: true,
+  density: "comfortable",
+  highContrast: false,
 };
 
 const KEY = "norr.preferences.v1";

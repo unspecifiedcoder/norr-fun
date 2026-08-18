@@ -60,6 +60,36 @@ export const Preferences = () => {
 
         <div className="border-t border-[var(--rule)] my-4" />
 
+        <Row
+          label="Density"
+          hint="Compact takes a step out of every panel's padding. The type scale does not change."
+        >
+          <Segmented
+            options={[
+              { value: "comfortable" as const, label: "Roomy" },
+              { value: "compact" as const, label: "Compact" },
+            ]}
+            value={prefs.density}
+            onChange={(v) => set("density", v)}
+            label="Sheet density"
+          />
+        </Row>
+
+        <div className="border-t border-[var(--rule)] my-4" />
+
+        <Row
+          label="High contrast"
+          hint="Raises every hairline and muted label. Worth turning on for a projector."
+        >
+          <Toggle
+            on={prefs.highContrast}
+            onChange={(v) => set("highContrast", v)}
+            label="High contrast"
+          />
+        </Row>
+
+        <div className="border-t border-[var(--rule)] my-4" />
+
         <Row label="Shorten addresses" hint="Show 0x1234…abcd instead of the full address.">
           <Toggle
             on={prefs.abbreviateAddresses}

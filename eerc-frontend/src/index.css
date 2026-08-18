@@ -748,3 +748,24 @@ input[type="number"] {
 .skip-link:focus {
   left: 0;
 }
+
+/* ==================================================================== */
+/* Display preferences                                                  */
+/* ==================================================================== */
+
+/* Compact takes a step out of the padding, never out of the type scale.
+   Shrinking text to fit more in is the trade this design already refused. */
+:root[data-density="compact"] .panel__body { padding: 0.5rem 0.625rem; }
+:root[data-density="compact"] .panel__head { padding: 0.3125rem 0.625rem; min-height: 2rem; }
+:root[data-density="compact"] .card-link { line-height: 1.3; }
+
+/* High contrast raises the rules and the muted inks to full strength. The
+   palette clears AA as it is; hairlines are simply the first thing lost on a
+   projector, which is where a demo gets seen. */
+:root[data-contrast="high"] {
+  --rule: #4a5057;
+  --rule-strong: #6b727a;
+  --ink-2: #c9c6bf;
+  --ink-3: #a8a49c;
+  --ink-4: #7d7a73;
+}
