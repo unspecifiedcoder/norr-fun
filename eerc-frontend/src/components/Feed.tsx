@@ -18,6 +18,7 @@ import { Avatar } from "./ui/Avatar";
 import { Sparkline } from "./ui/Chart";
 import { Pills, Meter } from "./ui/Controls";
 import { Figure, Empty as SheetEmpty } from "./ui/Panel";
+import { CompareToggle } from "./Compare";
 import { short, compact, price as fmtPrice, pct, since } from "./ui/format";
 
 /**
@@ -476,7 +477,11 @@ const LaunchCard = ({
         </div>
       </Link>
 
-      {/* Sits outside the link: saving must not navigate. */}
+      {/* Sits outside the link: neither comparing nor saving should navigate. */}
+      <span className="absolute bottom-3 right-9">
+        <CompareToggle ido={launch.ido} />
+      </span>
+
       {social.isConnected && social.available && (
         <button
           onClick={social.toggleSave}

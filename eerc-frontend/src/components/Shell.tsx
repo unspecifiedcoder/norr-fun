@@ -3,6 +3,7 @@ import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   FaPaperPlane, FaPlus, FaStream, FaUser, FaColumns,
   FaHandHoldingUsd, FaBell, FaCog, FaSearch, FaBars, FaTimes, FaWallet,
+  FaBalanceScale,
   FaLock, FaLockOpen, FaBolt, FaCircle,
 } from "react-icons/fa";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
@@ -35,6 +36,7 @@ const PRIMARY = [
   { to: "/", label: "Raises", icon: <FaStream />, end: true },
   { to: "/desks", label: "Desks", icon: <FaColumns />, end: false },
   { to: "/activity", label: "Activity", icon: <FaBell />, end: false },
+  { to: "/compare", label: "Compare", icon: <FaBalanceScale />, end: false },
 ];
 
 const PERSONAL = [
@@ -145,6 +147,7 @@ const BottomNav = () => (
       { to: "/portfolio", label: "Portfolio", icon: <FaWallet />, end: false },
       { to: "/start", label: "Start", icon: <FaPlus />, end: false },
       { to: "/activity", label: "Activity", icon: <FaBell />, end: false },
+  { to: "/compare", label: "Compare", icon: <FaBalanceScale />, end: false },
     ].map((t) => (
       <NavLink
         key={t.to}

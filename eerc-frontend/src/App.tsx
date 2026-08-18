@@ -2,6 +2,7 @@ import { Route, Routes, useNavigate } from "react-router-dom";
 import { CreateLaunch } from "./components/CreateLaunch";
 import { PrivateVault } from "./components/PrivateVault";
 import { Portfolio } from "./components/Portfolio";
+import { Compare } from "./components/Compare";
 import { LaunchModels } from "./components/LaunchModels";
 import { Feed } from "./components/Feed";
 import { LaunchDetail } from "./components/LaunchDetail";
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="/desks" element={<Boards />} />
         <Route path="/desk/:slug" element={<BoardDetail />} />
         <Route path="/portfolio" element={<Portfolio />} />
+        <Route path="/compare" element={<Compare />} />
         <Route path="/owed" element={<Earnings />} />
         <Route path="/activity" element={<Activity />} />
         <Route path="/me" element={<Profile />} />
