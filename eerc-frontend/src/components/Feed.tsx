@@ -4,6 +4,7 @@ import { FaPlus, FaSearch, FaBookmark, FaRegBookmark } from "react-icons/fa";
 import { useSocial } from "../hooks/useSocial";
 import { ActionButton } from "./ActionButton";
 import { useRegistryFeed, SORTS, type FeedSort, type FeedRow } from "../hooks/useRegistryFeed";
+import { useProtocolStats } from "../hooks/useProtocolStats";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
@@ -19,6 +20,7 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
   const [sort, setSort] = useState<FeedSort>("newest");
   const [query, setQuery] = useState("");
   const feed = useRegistryFeed(sort);
+  const stats = useProtocolStats();
 
   // Matches name, ticker, summary and both addresses, so a pasted address
   // finds its raise as readily as a typed name.
@@ -50,6 +52,27 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
 
   return (
     <>
+      <header className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight">Raises</h1>
+        <p className="text-sm text-gray-500 mt-1 max-w-2xl">
+          Sealed contribution rounds. What each backer puts in stays encrypted;
+          the split, the tally and every claim are public.
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
+          <Headline label="Raises" value={String(stats.raises)} />
+          <Headline label="Accepting funds" value={String(stats.open)} accent="text-amber-400" />
+          <Headline
+            label="Raised in total"
+            value={stats.raised > 0n ? `${stats.compact(stats.raised)} ${stats.symbol}` : "—"}
+            accent="text-emerald-400"
+          />
+          <Headline
+            label="Paid out"
+            value={stats.distributed > 0n ? `${stats.compact(stats.distributed)} ${stats.symbol}` : "—"}
+          />
+        </div>
+      </header>
+
       <div className="flex items-center justify-between gap-4 flex-wrap mb-5">
         <div className="flex gap-1">
           {SORTS.map((s) => (
@@ -159,17 +182,23 @@ const Row = ({ row }: { row: FeedRow }) => {
             started by {short(launch.creator)} · vault {short(launch.feeRouter)}
           </p>
 
-          <div className="grid grid-cols-3 gap-4 mt-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
             <Stat
               label="raised"
-              value={`${Number(row.format(row.raised)).toLocaleString()} ${row.assetSymbol}`}
+              value={Number(row.format(row.raised)).toLocaleString()}
+              sub={row.assetSymbol}
             />
             <Stat
               label="paid out"
               value={`${settledPct.toFixed(0)}%`}
               sub={`${Number(row.format(row.distributed)).toLocaleString()} ${row.assetSymbol}`}
             />
-            <Stat label="splits" value={`${row.splitCount} recipients`} />
+            <Stat label="recipients" value={String(row.splitCount)} />
+            <Stat
+              label="phase"
+              value={row.finalized ? "Claiming" : "Open"}
+              sub={row.locked ? "splits frozen" : undefined}
+            />
           </div>
         </div>
       </div>
@@ -201,8 +230,23 @@ const Tag = ({
 const Stat = ({ label, value, sub }: { label: string; value: string; sub?: string }) => (
   <div>
     <p className="text-[10px] uppercase tracking-wider text-gray-500">{label}</p>
-    <p className="text-sm font-bold text-gray-100 break-all">{value}</p>
-    {sub && <p className="text-[10px] text-gray-600 break-all">{sub}</p>}
+    <p className="text-sm font-bold text-gray-100 truncate" title={value}>{value}</p>
+    {sub && <p className="text-[10px] text-gray-600 truncate">{sub}</p>}
+  </div>
+);
+
+const Headline = ({
+  label,
+  value,
+  accent = "text-gray-100",
+}: {
+  label: string;
+  value: string;
+  accent?: string;
+}) => (
+  <div className="bg-white/[0.03] border border-white/10 rounded-xl p-3.5">
+    <p className="text-[10px] uppercase tracking-wider text-gray-500">{label}</p>
+    <p className={`text-xl font-bold mt-0.5 truncate ${accent}`} title={value}>{value}</p>
   </div>
 );
 

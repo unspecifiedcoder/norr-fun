@@ -1,15 +1,13 @@
 // App.tsx
-import { NavLink, Route, Routes, useNavigate } from "react-router-dom";
+import { Route, Routes, useNavigate } from "react-router-dom";
 import { useAccount } from "wagmi";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { FaPaperPlane, FaSearchDollar, FaPlus, FaStream, FaUser, FaColumns, FaHandHoldingUsd, FaBell, FaCog } from "react-icons/fa";
+import { FaPaperPlane, FaSearchDollar } from "react-icons/fa";
 
 import { useEERC } from "./hooks/useEERC";
 import { StyledInput } from "./components/StyledIntput";
 import { ActionButton } from "./components/ActionButton";
 import { Card } from "./components/Card";
 import { ParticleBackground } from "./components/ParticleBackground";
-import { Logo } from "./components/Logo";
 import { CreateLaunch } from "./components/CreateLaunch";
 import { Feed } from "./components/Feed";
 import { LaunchDetail } from "./components/LaunchDetail";
@@ -20,79 +18,36 @@ import { Activity } from "./components/Activity";
 import { Preferences } from "./components/Preferences";
 import { usePreferences } from "./hooks/usePreferences";
 import { ChainGuard } from "./components/ChainGuard";
-
-const TABS = [
-  { to: "/", label: "Raises", icon: <FaStream />, end: true },
-  { to: "/start", label: "Start one", icon: <FaPlus />, end: false },
-  { to: "/desks", label: "Desks", icon: <FaColumns />, end: false },
-  { to: "/owed", label: "Owed to you", icon: <FaHandHoldingUsd />, end: false },
-  { to: "/activity", label: "Activity", icon: <FaBell />, end: false },
-  { to: "/me", label: "You", icon: <FaUser />, end: false },
-  { to: "/private", label: "Private transfer", icon: <FaPaperPlane />, end: false },
-  { to: "/settings", label: "Settings", icon: <FaCog />, end: false },
-];
+import { Shell } from "./components/Shell";
 
 export default function App() {
   const { prefs } = usePreferences();
   return (
-    // justify-center would push overflow above the top of the viewport once the
-    // page grows taller than the screen, making it unscrollable; start-aligned
-    // with vertical padding keeps tall content reachable.
-    <div className="min-h-screen text-white flex flex-col items-center justify-start font-mono p-4 py-10">
+    <>
       {prefs.showBackdrop && <ParticleBackground />}
-
-      <div className="relative z-10 w-full flex flex-col items-center">
-        <main className="w-full max-w-5xl bg-black bg-opacity-40 backdrop-blur-xl rounded-2xl border border-gray-700 shadow-2xl shadow-blue-500/10">
-          <div className="p-6 border-b border-gray-700 flex justify-between items-center gap-4 flex-wrap">
-            <NavLink to="/" aria-label="norr.fun home">
-              <Logo size="2rem" />
-            </NavLink>
-            <ConnectButton />
-          </div>
-
-          <nav className="px-6 pt-4 flex gap-1 flex-wrap border-b border-gray-800">
-            {TABS.map((t) => (
-              <NavLink
-                key={t.to}
-                to={t.to}
-                end={t.end}
-                className={({ isActive }) =>
-                  `px-4 py-2.5 text-sm rounded-t-lg flex items-center gap-2 transition-colors ${
-                    isActive
-                      ? "bg-white/10 text-white font-bold"
-                      : "text-gray-500 hover:text-gray-200 hover:bg-white/5"
-                  }`
-                }
-              >
-                <span className="text-xs">{t.icon}</span>
-                {t.label}
-              </NavLink>
-            ))}
-          </nav>
-
-          <div className="p-6">
-            <Routes>
-              <Route path="/" element={<FeedRoute />} />
-              <Route path="/raise/:ido" element={<LaunchDetail />} />
-              <Route path="/start" element={<CreateRoute />} />
-              <Route path="/desks" element={<Boards />} />
-              <Route path="/desk/:slug" element={<BoardDetail />} />
-              <Route path="/owed" element={<Earnings />} />
-              <Route path="/activity" element={<Activity />} />
-              <Route path="/me" element={<Profile />} />
-              <Route path="/u/:address" element={<Profile />} />
-              <Route path="/private" element={<PrivateTransfer />} />
-              <Route path="/settings" element={<Preferences />} />
-              {/* Chain-scoped mirrors, so a shared link carries its network. */}
-              <Route path="/:chain/raise/:ido" element={<ChainGuard><LaunchDetail /></ChainGuard>} />
-              <Route path="/:chain/desk/:slug" element={<ChainGuard><BoardDetail /></ChainGuard>} />
-              <Route path="/:chain/u/:address" element={<ChainGuard><Profile /></ChainGuard>} />
-              <Route path="*" element={<FeedRoute />} />
-            </Routes>
-          </div>
-        </main>
+      <div className="relative z-10">
+        <Shell>
+          <Routes>
+            <Route path="/" element={<FeedRoute />} />
+            <Route path="/raise/:ido" element={<LaunchDetail />} />
+            <Route path="/start" element={<CreateRoute />} />
+            <Route path="/desks" element={<Boards />} />
+            <Route path="/desk/:slug" element={<BoardDetail />} />
+            <Route path="/owed" element={<Earnings />} />
+            <Route path="/activity" element={<Activity />} />
+            <Route path="/me" element={<Profile />} />
+            <Route path="/u/:address" element={<Profile />} />
+            <Route path="/private" element={<PrivateTransfer />} />
+            <Route path="/settings" element={<Preferences />} />
+            {/* Chain-scoped mirrors, so a shared link carries its network. */}
+            <Route path="/:chain/raise/:ido" element={<ChainGuard><LaunchDetail /></ChainGuard>} />
+            <Route path="/:chain/desk/:slug" element={<ChainGuard><BoardDetail /></ChainGuard>} />
+            <Route path="/:chain/u/:address" element={<ChainGuard><Profile /></ChainGuard>} />
+            <Route path="*" element={<FeedRoute />} />
+          </Routes>
+        </Shell>
       </div>
-    </div>
+    </>
   );
 }
 
