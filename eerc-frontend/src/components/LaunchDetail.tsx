@@ -29,6 +29,7 @@ import { Contribute } from "./Contribute";
 import { ProofVerifier } from "./ProofVerifier";
 import { PrivacyLedger } from "./PrivacyLedger";
 import { Timeline } from "./Timeline";
+import { ShareCard } from "./ShareCard";
 import { getMarket } from "../hooks/useMarket";
 
 type Tab = "trades" | "comments" | "holders" | "split" | "promote" | "privacy";
@@ -182,6 +183,18 @@ export const LaunchDetail = () => {
                 value={new Date(Number(launch.createdAt) * 1000).toLocaleDateString()}
               />
               <Meta label="Share" value="copy link" copy={shareUrl} />
+              <ShareCard
+                name={launch.name}
+                symbol={launch.symbol}
+                base={m.baseSymbol || "SEALED"}
+                priceNow={spot}
+                changePct={m.stats.change}
+                changeWindow={m.stats.changeWindow === "24h" ? "24H" : "SINCE OPEN"}
+                marketCap={marketCap}
+                fills={m.stats.fills}
+                creator={launch.creator}
+                sealed={!traded}
+              />
             </div>
 
             {/* ---- channel readout ---- */}

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAccount, useChainId, usePublicClient, useWalletClient } from "wagmi";
 import { parseUnits } from "viem";
 import {
@@ -113,15 +113,56 @@ export function useCreateLaunch() {
   const registry = getRegistry(chainId);
   const existing = getLaunch(chainId);
 
-  const [draft, setDraft] = useState<LaunchDraft>({
-    name: "",
-    symbol: "",
-    supply: "1000000",
-    description: "",
-    logoURI: "",
-    boardId: 0n,
-    splits: [blankSplit("Creator")],
+  /**
+   * The draft survives a reload.
+   *
+   * Filling this form is several minutes of work -- a name, a supply, a split
+   * across several wallets -- and losing it to a refresh, a wallet prompt that
+   * navigates away, or a mistyped URL is the kind of small disaster that ends
+   * a demo. Held per chain, since a draft's desk and asset only make sense on
+   * the network it was written for, and cleared once the raise is deployed.
+   *
+   * bigint does not survive JSON, so boardId is stored as a string and read
+   * back deliberately rather than by a reviver that would have to guess.
+   */
+  const draftKey = `norr.launch.draft.${chainId}`;
+
+  const [draft, setDraft] = useState<LaunchDraft>(() => {
+    const blank: LaunchDraft = {
+      name: "",
+      symbol: "",
+      supply: "1000000",
+      description: "",
+      logoURI: "",
+      boardId: 0n,
+      splits: [blankSplit("Creator")],
+    };
+    if (typeof window === "undefined") return blank;
+    try {
+      const raw = window.localStorage.getItem(draftKey);
+      if (!raw) return blank;
+      const saved = JSON.parse(raw) as Omit<LaunchDraft, "boardId"> & { boardId: string };
+      return {
+        ...blank,
+        ...saved,
+        boardId: BigInt(saved.boardId ?? "0"),
+        splits: saved.splits?.length ? saved.splits : blank.splits,
+      };
+    } catch {
+      return blank;
+    }
   });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        draftKey,
+        JSON.stringify({ ...draft, boardId: draft.boardId.toString() }),
+      );
+    } catch {
+      // A full or blocked store is not worth interrupting the form for.
+    }
+  }, [draft, draftKey]);
 
   const [steps, setSteps] = useState<DeployStep[]>([]);
   const [busy, setBusy] = useState(false);
@@ -276,6 +317,12 @@ export function useCreateLaunch() {
       mark("register", { status: "done" });
 
       setDeployed({ projectToken, feeRouter, ido });
+      // Shipped: the draft has become a raise and should not reappear.
+      try {
+        window.localStorage.removeItem(draftKey);
+      } catch {
+        /* nothing to clean up */
+      }
     } catch (err) {
       setError(explain(err));
       setSteps((prev) => {
@@ -285,7 +332,7 @@ export function useCreateLaunch() {
     } finally {
       setBusy(false);
     }
-  }, [ready, walletClient, publicClient, registry, existing, address, draft]);
+  }, [ready, walletClient, publicClient, registry, existing, address, draft, draftKey]);
 
   return {
     draft,
