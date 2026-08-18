@@ -1,11 +1,11 @@
 {
   "chainId": 31337,
-  "deployedAt": "2026-08-18T20:57:39.624Z",
+  "deployedAt": "2026-08-18T21:47:47.446Z",
   "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-  "contributionAsset": "0x70e0bA845a1A0F2DA3359C97E0285013525FFC49",
-  "projectToken": "0x99bbA657f2BbC93c02D617f8bA121cB8Fc104Acf",
-  "feeRouter": "0x0E801D84Fa97b50751Dbf25036d067dCf18858bF",
-  "ido": "0x8f86403A4DE0BB5791fa46B8e795C547942fE4Cf",
+  "contributionAsset": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "projectToken": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+  "feeRouter": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+  "ido": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
   "splits": [
     {
       "recipient": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",

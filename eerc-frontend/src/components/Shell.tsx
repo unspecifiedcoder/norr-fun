@@ -211,7 +211,16 @@ const Rail = ({ open }: { open: boolean }) => {
 
   return (
     <aside
-      className={`${open ? "flex" : "hidden"} lg:flex lg:w-[248px] lg:shrink-0 lg:h-screen lg:sticky lg:top-0 border-b lg:border-b-0 lg:border-r border-[var(--rule)] bg-[var(--sheet)] flex-col`}
+      /*
+       * The rail scrolls as a whole.
+       *
+       * It used to hold every section at its natural height and let only the
+       * desk index shrink. That worked until the nav grew: at a 720px window
+       * the fixed sections came to 783px, the desk list collapsed to a single
+       * pixel, and the protocol figures and dock were pushed off the bottom
+       * entirely — invisible, with nothing to scroll.
+       */
+      className={`${open ? "flex" : "hidden"} lg:flex lg:w-[248px] lg:shrink-0 lg:h-screen lg:sticky lg:top-0 border-b lg:border-b-0 lg:border-r border-[var(--rule)] bg-[var(--sheet)] flex-col lg:overflow-y-auto`}
     >
       <div className="px-4 pt-4 pb-3 hidden lg:block">
         <NavLink to="/" aria-label="norr.fun home" className="inline-block">
@@ -242,7 +251,7 @@ const Rail = ({ open }: { open: boolean }) => {
       {/* Desks live in the rail rather than behind a click: a publisher desk is
           a place you switch to, and an index you have to navigate to is an
           index nobody reads. */}
-      <div className="mt-4 flex-1 min-h-0 flex flex-col border-t border-[var(--rule)]">
+      <div className="mt-4 flex flex-col border-t border-[var(--rule)]">
         <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-2">
           <p className="label">Desks</p>
           <select
@@ -259,7 +268,7 @@ const Rail = ({ open }: { open: boolean }) => {
           </select>
         </div>
 
-        <div className="overflow-y-auto px-2 pb-2 flex-1 min-h-0">
+        <div className="px-2 pb-2 max-h-56 overflow-y-auto">
           {desks.length === 0 ? (
             <p className="text-[length:var(--t-fine)] text-[var(--ink-4)] px-2 py-1.5">
               {boards.available ? "None open yet." : `No desk registry on chain ${boards.chainId}.`}
@@ -290,7 +299,7 @@ const Rail = ({ open }: { open: boolean }) => {
       </div>
 
       {/* Live protocol figures, so the rail carries information and not just links. */}
-      <div className="hidden lg:block px-4 py-3 border-t border-[var(--rule)]">
+      <div className="hidden lg:block px-4 py-3 border-t border-[var(--rule)] mt-auto">
         <dl className="space-y-1 text-[length:var(--t-fine)]">
           <Figure label="Raises" value={String(stats.raises)} numeric={stats.raises} />
           <Figure label="Accepting" value={String(stats.open)} numeric={stats.open} accent />
