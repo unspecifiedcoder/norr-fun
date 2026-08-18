@@ -38,14 +38,21 @@ const MARKER = /^↪#(\d+)\s*/;
  * in the body is touched, and rendered short so a paragraph does not turn
  * into a wall of hex.
  */
-const ADDRESS = /(0x[a-fA-F0-9]{40})/g;
+/**
+ * The three marks people actually type in a thread.
+ *
+ * `backticks` for a value, *asterisks* for emphasis, and bare addresses. Not
+ * a markdown parser: a comment is on-chain and permanent, and a renderer that
+ * accepts arbitrary markup is a renderer that eventually renders something
+ * someone crafted. Everything outside these three shapes is printed as typed.
+ */
+const TOKENS = /(0x[a-fA-F0-9]{40}|`[^`\n]+`|\*[^*\n]+\*)/g;
 
-const Body = ({ text }: { text: string }) => {
-  const parts = text.split(ADDRESS);
-  return (
-    <>
-      {parts.map((part, i) =>
-        ADDRESS.test(part) && part.length === 42 ? (
+const Body = ({ text }: { text: string }) => (
+  <>
+    {text.split(TOKENS).map((part, i) => {
+      if (/^0x[a-fA-F0-9]{40}$/.test(part)) {
+        return (
           <Link
             key={i}
             to={`/u/${part}`}
@@ -55,13 +62,29 @@ const Body = ({ text }: { text: string }) => {
           >
             {short(part)}
           </Link>
-        ) : (
-          <span key={i}>{part}</span>
-        ),
-      )}
-    </>
-  );
-};
+        );
+      }
+      if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
+        return (
+          <code
+            key={i}
+            className="px-1 border border-[var(--rule)] rounded-[var(--r-control)] bg-[var(--snow-sunk)] text-[var(--ink)]"
+          >
+            {part.slice(1, -1)}
+          </code>
+        );
+      }
+      if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
+        return (
+          <strong key={i} className="text-[var(--ink)] font-bold">
+            {part.slice(1, -1)}
+          </strong>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    })}
+  </>
+);
 
 type Node = {
   entry: CommentEntry;

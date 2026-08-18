@@ -16,6 +16,7 @@ import { useBoards } from "../hooks/useBoards";
 import { useActivity } from "../hooks/useActivity";
 import { Live } from "./ui/Live";
 import { setDisplayPrefs } from "./ui/format";
+import { useRegistryFeed } from "../hooks/useRegistryFeed";
 
 /**
  * Application shell.
@@ -43,10 +44,11 @@ const PERSONAL = [
   { to: "/private", label: "Private transfer", icon: <FaPaperPlane />, end: false },
 ];
 
-type DeskSort = "newest" | "name" | "share";
+type DeskSort = "newest" | "name" | "share" | "active";
 
 const DESK_SORTS: { key: DeskSort; label: string }[] = [
   { key: "newest", label: "Newest" },
+  { key: "active", label: "Most active" },
   { key: "name", label: "A–Z" },
   { key: "share", label: "Top share" },
 ];
@@ -65,11 +67,12 @@ export const Shell = ({ children }: { children: React.ReactNode }) => {
     const root = document.documentElement;
     root.dataset.density = prefs.density;
     root.dataset.contrast = prefs.highContrast ? "high" : "normal";
+    root.dataset.scale = prefs.textScale;
     setDisplayPrefs({
       compactNumbers: prefs.compactNumbers,
       dateFormat: prefs.dateFormat,
     });
-  }, [prefs.density, prefs.highContrast, prefs.compactNumbers, prefs.dateFormat]);
+  }, [prefs.density, prefs.highContrast, prefs.compactNumbers, prefs.dateFormat, prefs.textScale]);
 
   // A drawer that survives navigation traps the reader behind their own menu.
   useEffect(() => {
@@ -165,14 +168,40 @@ const BottomNav = () => (
 const Rail = ({ open }: { open: boolean }) => {
   const stats = useProtocolStats();
   const boards = useBoards();
+  // The same registry page the feed reads; used to count raises per desk.
+  const registry = useRegistryFeed("newest", 100);
   const [deskSort, setDeskSort] = useState<DeskSort>("newest");
+
+  /**
+   * How many raises each desk has published.
+   *
+   * Counted from the registry rows the feed already holds, so "most active"
+   * ranks on what a desk has actually done rather than on when it was opened
+   * or what it charges — the two orderings that were already available and
+   * that a busy desk can look identical under.
+   */
+  const raisesPerDesk = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const r of registry.rows) {
+      const key = r.launch.boardId.toString();
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return counts;
+  }, [registry.rows]);
 
   const desks = useMemo(() => {
     const rows = [...boards.boards];
     if (deskSort === "name") return rows.sort((a, b) => a.name.localeCompare(b.name));
     if (deskSort === "share") return rows.sort((a, b) => b.minPartnerBps - a.minPartnerBps);
+    if (deskSort === "active") {
+      return rows.sort(
+        (a, b) =>
+          (raisesPerDesk.get(b.id.toString()) ?? 0) - (raisesPerDesk.get(a.id.toString()) ?? 0) ||
+          Number(b.createdAt - a.createdAt),
+      );
+    }
     return rows.sort((a, b) => Number(b.createdAt - a.createdAt));
-  }, [boards.boards, deskSort]);
+  }, [boards.boards, deskSort, raisesPerDesk]);
 
   return (
     <aside
@@ -241,7 +270,7 @@ const Rail = ({ open }: { open: boolean }) => {
                       : "text-[var(--ink-2)] hover:bg-[var(--snow-sunk)] hover:text-[var(--ink)]"
                   }`
                 }
-                title={`${d.name} — ${d.minPartnerBps / 100}% minimum share`}
+                title={`${d.name} — ${d.minPartnerBps / 100}% minimum share, ${raisesPerDesk.get(d.id.toString()) ?? 0} raises`}
               >
                 <Avatar seed={d.slug} fallback={d.slug.slice(0, 2)} size={22} />
                 <span className="text-[length:var(--t-fine)] truncate flex-1">{d.name}</span>

@@ -41,6 +41,15 @@ export type Preferences = {
    * removes the ambiguity for anyone who wants it.
    */
   dateFormat: "local" | "iso";
+  /**
+   * Base text size.
+   *
+   * The scale has a hard 12px floor and three steps, and none of that changes
+   * here — this scales the whole ramp together so it stays proportional. A
+   * dense financial surface read on a laptop at arm's length is a different
+   * problem from the same surface on a 27-inch monitor.
+   */
+  textScale: "small" | "normal" | "large";
 };
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -51,6 +60,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   highContrast: false,
   compactNumbers: true,
   dateFormat: "local",
+  textScale: "normal",
 };
 
 const KEY = "norr.preferences.v1";

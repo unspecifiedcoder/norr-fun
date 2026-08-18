@@ -78,6 +78,24 @@ export const Preferences = () => {
         <div className="border-t border-[var(--rule)] my-4" />
 
         <Row
+          label="Text size"
+          hint="Scales the whole ramp together. The 12px floor moves with it rather than being crossed."
+        >
+          <Segmented
+            options={[
+              { value: "small" as const, label: "S" },
+              { value: "normal" as const, label: "M" },
+              { value: "large" as const, label: "L" },
+            ]}
+            value={prefs.textScale}
+            onChange={(v) => set("textScale", v)}
+            label="Text size"
+          />
+        </Row>
+
+        <div className="border-t border-[var(--rule)] my-4" />
+
+        <Row
           label="High contrast"
           hint="Raises every hairline and muted label. Worth turning on for a projector."
         >

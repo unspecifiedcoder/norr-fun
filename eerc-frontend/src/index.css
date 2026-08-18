@@ -824,3 +824,23 @@ input[type="number"] {
   /* An address is useless truncated on paper, where it cannot be clicked. */
   a[href^="/u/"], a[href^="/raise/"] { text-decoration: none; color: #000 !important; }
 }
+
+/*
+ * Text scale.
+ *
+ * Applied to the three ramp tokens together rather than to `html`, which is
+ * the root every rem is measured against -- setting a size there silently
+ * rebases every token in the file, and a 12px floor quietly became 11.25px
+ * the last time that was tried.
+ */
+:root[data-scale="small"] {
+  --t-fine: 0.6875rem;  /* 11px */
+  --t-base: 0.875rem;   /* 14px */
+  --t-lead: 1.75rem;    /* 28px */
+}
+
+:root[data-scale="large"] {
+  --t-fine: 0.8125rem;  /* 13px */
+  --t-base: 1rem;       /* 16px */
+  --t-lead: 2.25rem;    /* 36px */
+}
