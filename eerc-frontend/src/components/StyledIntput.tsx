@@ -11,7 +11,7 @@ import React from 'react'; type StyledInputProps = React.InputHTMLAttributes<HTM
 export const StyledInput = (props: StyledInputProps) => (
   <input
     {...props} className={
-      'w-full bg-[var(--snow-sunk)] border border-[var(--rule)] px-2.5 py-2 ' +
+      'w-full bg-[var(--snow-sunk)] border border-[var(--rule)] rounded-[var(--r-control)] px-2.5 py-2 ' +
       'text-[var(--ink)] placeholder:text-[var(--ink-4)] ' +
       'focus:border-[var(--ink)] outline-none transition-colors ' +
       (props.className ?? '')

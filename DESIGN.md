@@ -5,34 +5,29 @@
 The system norr.fun commits to. Change it here first; anything that drifts from
 this is a bug, not a variation.
 
-## The world — "polar night ledger"
+## The direction — dark operator
 
-A records instrument for a sealed sale, read through the northern winter dark.
-Fjord-slate ground, snow ink, iron-oxide signal.
+Near-black ground, one accent, dense ruled data. The register a data-heavy dark
+dashboard has used since terminals: black field, tabular figures, and a single
+vivid signal that only ever means one thing.
 
 Every surface is **Operate**: someone completing a task with money attached.
 There is no marketing page. Expression never outranks the task, state, or a
 familiar affordance — brand lives in precise details.
 
-**Why this and not the obvious one.** This category ships one look: pure black,
-one neon accent, glowing edges, rounded glassy cards, a candlestick chart. Every
-AI-generated trading UI converges on the same thing. It was also where this
-codebase started — 80 uses of `gray-500`, cyan-to-fuchsia gradients, blue glow
-shadows.
+**Ground is `#0a0b0c`, not `#000000`.** Pure black crushes the hairlines that
+carry every table on every surface here, and removes any sense of a lit panel
+sitting above a field. It reads as black; it just still has structure.
 
-Dark is pinned by the brief. So this is a *different* dark:
+**One accent.** Green means value moving in your favour, and nothing else. The
+remaining hues are not accents — they are the three states a financial
+interface cannot express without colour (waiting, negative, sealed), each held
+under 70% saturation so none competes with the signal.
 
-- the ground is **desaturated blue-slate with real hue**, never `#000` — pure
-  black also destroys the hairlines the whole system depends on;
-- the accent is **iron oxide**, a pigment rather than a light source;
-- **nothing glows.** No gradient fills, no glassmorphism, no drop shadows.
-
-Two disciplines are borrowed on purpose:
-
-- **Security printing.** A value lives in a bounded, tinted field with a rule
-  around it, not floating in a card. Figures are tabular and column-aligned.
-- **Transit-timetable typography.** Few sizes, rank carried by weight, case,
-  reversal and rule. See the honest correction under Type.
+**Preserved from the previous system** because the audit found them working: a
+token-only palette (which is why a full retheme is a token edit, not a
+rewrite), tabular figures, hairline tables, shape-matched skeletons, the rail
+nav, and the wordmark's chromatic split.
 
 ## Color
 
@@ -41,24 +36,27 @@ never decoration — a hue on this surface always means something.
 
 | Token | Value | Role |
 |---|---|---|
-| `--snow` | `#101a20` | page ground |
-| `--snow-sunk` | `#0c141a` | input wells, recessed cells |
-| `--sheet` | `#16222a` | ruled sections |
-| `--sheet-raised` | `#1c2b34` | the one level above a sheet |
-| `--ink` … `--ink-4` | `#e6edf1` → `#5c6e7a` | text, four steps |
-| `--rule` | `#2b3a44` | hairlines; the structural element |
-| `--falu` | `#c9553a` | signal, primary action, live |
-| `--lichen` | `#6aa585` | settled, confirmed, paid |
-| `--ochre` | `#c2a04a` | waiting, pending, held |
-| `--fjord` | `#6d9fb8` | **sealed** — this product's signature state |
+| `--snow` | `#0a0b0c` | page ground |
+| `--snow-sunk` | `#060708` | input wells |
+| `--sheet` | `#101113` | panels |
+| `--sheet-raised` | `#17191c` | one level above a panel |
+| `--ink` … `--ink-4` | `#f2f4f5` → `#4e565c` | text, four steps |
+| `--rule` | `#212427` | hairlines; the structural element |
+| `--falu` | `#3fcf8a` | **the** accent — value in your favour |
+| `--ochre` | `#d9a441` | waiting, pending, held |
+| `--loss` | `#e05252` | negative movement |
+| `--fjord` | `#7f8b93` | sealed / neutral state |
 
-Each state pigment has a `-wash` at ~12% for filled marks.
+**Radius is varied, not uniform** — `--r-panel` 10px for containers,
+`--r-control` 6px for controls. Uniform radius on everything is a tell.
 
-**Allocation ramp** (`--cat-*`): eight fee buckets share one bar, so they must
-separate at 4px wide. Built by walking the world's pigments warm→cold while
-alternating lightness — adjacent buckets differ in value as well as hue, which
-is what carries the distinction in greyscale and for red-green color-blind
-readers. Never substitute a rainbow.
+**Allocation ramp** (`--cat-*`): eight buckets stepped through one hue family by
+value rather than eight competing hues, so they separate at 4px wide, in
+greyscale, and for red-green colour-blind readers.
+
+**Measured contrast** (all AA or better): ink on ground 17.9:1 · ink-2 8.9:1 ·
+ink-3 4.8:1 · accent on ground 9.9:1 · button text on accent 9.6:1 · ochre
+8.4:1 · loss 5.0:1.
 
 ## Type
 

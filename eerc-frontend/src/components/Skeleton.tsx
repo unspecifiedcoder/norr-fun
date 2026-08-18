@@ -11,7 +11,7 @@
 
 /** Mirrors a headline tile in the feed masthead. */
 export const StatSkeleton = () => (
-  <div className="bg-[var(--sheet)] border border-[var(--rule)] p-3.5">
+  <div className="bg-[var(--sheet)] border border-[var(--rule)] rounded-[var(--r-panel)] p-3.5">
     <Shimmer className="h-2 w-16" />
     <Shimmer className="h-5 w-20 mt-2" />
   </div>
@@ -19,7 +19,7 @@ export const StatSkeleton = () => (
 
 /** Mirrors a feed row: avatar, title block, and the four-stat strip. */
 export const RowSkeleton = () => (
-  <div className="bg-[var(--sheet)] border border-[var(--rule)] p-5">
+  <div className="bg-[var(--sheet)] border border-[var(--rule)] rounded-[var(--r-panel)] p-5">
     <div className="flex items-start gap-4">
       <Shimmer className="w-11 h-11 shrink-0" />
       <div className="flex-1 min-w-0">

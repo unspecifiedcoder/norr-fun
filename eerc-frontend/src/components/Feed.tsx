@@ -145,7 +145,7 @@ const Row = ({ row }: { row: FeedRow }) => {
   return (
     <Link
       to={`/raise/${launch.ido}`}
-      className="block bg-[var(--sheet)] border border-[var(--rule)]  p-5 hover:border-[var(--rule)] hover:bg-[var(--sheet)] transition-colors focus:outline-none"
+      className="block bg-[var(--sheet)] border border-[var(--rule)] rounded-[var(--r-panel)] p-5 hover:border-[var(--rule)] hover:bg-[var(--sheet)] transition-colors focus:outline-none"
     >
       <div className="flex items-start gap-4">
         <div className="w-11 h-11  bg-[var(--fjord-wash)] border border-[var(--rule)] grid place-items-center shrink-0 text-[length:var(--t-fine)] font-bold">

@@ -11,7 +11,7 @@ import React from 'react'; interface CardProps { title: string; children: React.
  * box, so a long page reads as one continuous document.
  */
 export const Card = ({ title, children, aside }: CardProps) => (
-  <section className="bg-[var(--sheet)] border border-[var(--rule)] mb-4">
+  <section className="bg-[var(--sheet)] border border-[var(--rule)] rounded-[var(--r-panel)] mb-4">
     <header className="flex items-baseline justify-between gap-4 px-4 py-2.5 border-b border-[var(--rule)]">
       <h2 className="label !text-[var(--ink)]">{title}</h2>
       {aside}
