@@ -1,47 +1,82 @@
 import { FaBullhorn, FaCheck } from "react-icons/fa";
-import { Card } from "./Card";
+import { Panel } from "./ui/Panel";
 import { ActionButton } from "./ActionButton";
-import { usePromotion } from "../hooks/usePromotion"; const days = (seconds: bigint) => { const d = Number(seconds) / 86_400; return d >= 1 ? `${d} day${d === 1 ? "" : "s"}` : `${Math.round(Number(seconds) / 3600)}h`;
+import { usePromotion } from "../hooks/usePromotion";
+
+const days = (seconds: bigint) => {
+  const d = Number(seconds) / 86_400;
+  return d >= 1 ? `${d} day${d === 1 ? "" : "s"}` : `${Math.round(Number(seconds) / 3600)}h`;
 };
 
-/** Buy feed placement for a launch. Placement only — economics are untouched. */
-export const Promote = ({ sale }: { sale: string }) => { const p = usePromotion(sale); if (!p.available || p.tiers.length === 0) return null; return (
-    <Card title="Feed placement">
-      <p className="text-[var(--ink-2)] text-[length:var(--t-base)] mb-5">
-        Buy a slot near the top of the feed. It changes where this raise appears and nothing else — the split, the sale and the claim are untouched, and promoted entries are labelled as such. Slots run out.
+/**
+ * Paid feed placement for one launch.
+ *
+ * Placement only: buying a slot never changes a launch's economics, the feed
+ * labels promoted entries so a reader can tell paid placement from ranking,
+ * and slots expire — so an early launch cannot hold the top forever. All
+ * three constraints are stated here rather than buried in documentation,
+ * because a promoted feed that does not say so is just a dishonest feed.
+ */
+export const Promote = ({ sale }: { sale: string }) => {
+  const p = usePromotion(sale);
+  if (!p.available || p.tiers.length === 0) return null;
+
+  return (
+    <Panel
+      title="Feed placement"
+      aside={
+        p.isPromoted ? (
+          <span className="mark mark--live">
+            <FaCheck className="text-[9px]" /> promoted
+          </span>
+        ) : undefined
+      }
+    >
+      <p className="text-[length:var(--t-fine)] text-[var(--ink-2)] mb-4">
+        Buy a slot near the top of the feed. It changes where this raise appears
+        and nothing else — the split, the sale and the claim are untouched, and
+        promoted entries are labelled as such.
       </p>
 
       {p.isPromoted && (
-        <p className="text-[length:var(--t-fine)] text-[var(--lichen)] flex items-center gap-2 mb-4">
-          <FaCheck /> Promoted until{" "}
-          {new Date(Number(p.until) * 1000).toLocaleString()}
+        <p className="text-[length:var(--t-fine)] text-[var(--gain)] mb-3">
+          Promoted until {new Date(Number(p.until) * 1000).toLocaleString()}
         </p>
       )}
 
-      <ul className="space-y-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
         {p.tiers.map((t) => (
-          <li key={t.id} className="flex items-center gap-3 p-3 border border-[var(--rule)] flex-wrap"
-          >
-            <span className="min-w-0 flex-1">
-              <span className="block text-[length:var(--t-base)] font-bold text-[var(--ink)]">{t.name}</span>
-              <span className="block text-[length:var(--t-fine)] text-[var(--ink-3)]">
-                {t.duration > 0n ? `Runs ${days(t.duration)}` : "No placement — the default"}
-              </span>
-            </span>
-            <span className="text-[length:var(--t-base)] text-[var(--ink)] shrink-0">
+          <div key={t.id} className="panel panel--sunk p-3 flex flex-col">
+            <p className="text-[length:var(--t-base)] font-bold text-[var(--ink)]">{t.name}</p>
+            <p className="text-[length:var(--t-fine)] text-[var(--ink-3)] mt-0.5 flex-1">
+              {t.duration > 0n ? `Runs ${days(t.duration)}` : "No placement — the default"}
+            </p>
+            <p className="text-[length:var(--t-base)] text-[var(--ink)] tabular mt-2 pt-2 border-t border-[var(--rule)]">
               {t.price === 0n ? "Free" : `${p.formatPrice(t.price)} ETH`}
-            </span>
-            <ActionButton onClick={() => p.buy(t)} disabled={p.busy || !p.isConnected || t.duration === 0n}>
-              <FaBullhorn /> Buy
-            </ActionButton>
-          </li>
+            </p>
+            <div className="mt-2.5">
+              <ActionButton
+                onClick={() => p.buy(t)}
+                disabled={p.busy || !p.isConnected || t.duration === 0n}
+                tone="quiet"
+              >
+                <FaBullhorn /> Buy
+              </ActionButton>
+            </div>
+          </div>
         ))}
-      </ul>
+      </div>
 
       {!p.isConnected && (
-        <p className="text-[length:var(--t-fine)] text-[var(--ochre)] mt-3">Connect a wallet to buy a slot.</p>
+        <p className="text-[length:var(--t-fine)] text-[var(--ochre)] mt-3">
+          Connect a wallet to buy a slot.
+        </p>
       )}
-      {p.status && <p className="text-[length:var(--t-fine)] text-[var(--ink-2)] mt-3 break-words">{p.status}</p>}
-    </Card>
+      {p.status && (
+        <p className="text-[length:var(--t-fine)] text-[var(--ink-2)] mt-3 break-words">
+          {p.status}
+        </p>
+      )}
+    </Panel>
   );
 };

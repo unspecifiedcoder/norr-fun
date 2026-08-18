@@ -3,92 +3,148 @@ import { Link } from "react-router-dom";
 import {
   FaCoins, FaArrowDown, FaGift, FaComment, FaUserPlus, FaRocket, FaSync,
 } from "react-icons/fa";
-import { Card } from "./Card";
+import { Panel } from "./ui/Panel";
+import { Segmented } from "./ui/Controls";
 import { ActionButton } from "./ActionButton";
 import { useActivity, type ActivityItem } from "../hooks/useActivity";
-import { usePreferences } from "../hooks/usePreferences"; const ICONS: Record<ActivityItem["kind"], React.ReactNode> = { released: <FaCoins />, deposited: <FaArrowDown />, claimed: <FaGift />, comment: <FaComment />, followed: <FaUserPlus />, registered: <FaRocket />,
-}; const TONES: Record<ActivityItem["kind"], string> = { released: "text-[var(--lichen)]", deposited: "text-[var(--fjord)]", claimed: "text-[var(--fjord)]", comment: "text-[var(--ink-2)]", followed: "text-[var(--fjord)]", registered: "text-[var(--ochre)]",
+import { usePreferences } from "../hooks/usePreferences";
+
+const ICONS: Record<ActivityItem["kind"], React.ReactNode> = {
+  released: <FaCoins />,
+  deposited: <FaArrowDown />,
+  claimed: <FaGift />,
+  comment: <FaComment />,
+  followed: <FaUserPlus />,
+  registered: <FaRocket />,
+};
+
+/** Money moving is the accent; everything else sits in ink. */
+const TONES: Record<ActivityItem["kind"], string> = {
+  released: "var(--falu)",
+  deposited: "var(--falu)",
+  claimed: "var(--gain)",
+  comment: "var(--ink-3)",
+  followed: "var(--ink-3)",
+  registered: "var(--ochre)",
 };
 
 /**
  * Protocol activity, reconstructed from contract logs.
  *
- * Defaults to this wallet's own activity; the toggle widens it to everything
- * on the protocol, which is what makes it useful before you have any history.
+ * Rebuilt from logs rather than served from an index, so it needs no backend
+ * and nothing can appear here that did not happen on chain. Defaults to this
+ * wallet, which is useless before you have any history — hence the toggle.
  */
-export const Activity = () => { const { prefs } = usePreferences(); const [mine, setMine] = useState(prefs.activityScope === "mine"); const a = useActivity(mine); if (!a.hasRegistry) { return (
-      <Empty title="Nothing to read" body={`No registry on chain ${a.chainId}.`} />
-    );
-  } return (
-    <Card title="Activity">
-      <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
-        <p className="text-[var(--ink-2)] text-[length:var(--t-base)] max-w-lg">
-          Rebuilt from contract logs, so it needs no server and nothing can appear here that did not happen on chain.
-        </p>
-        <ActionButton onClick={a.reload} disabled={a.loading}>
+export const Activity = () => {
+  const { prefs } = usePreferences();
+  const [mine, setMine] = useState(prefs.activityScope === "mine");
+  const a = useActivity(mine);
+
+  if (!a.hasRegistry) {
+    return <Empty title="Nothing to read" body={`No registry on chain ${a.chainId}.`} />;
+  }
+
+  return (
+    <div className="max-w-4xl">
+      <header className="flex items-start justify-between gap-4 flex-wrap mb-5">
+        <div>
+          <h1 className="lead">Activity</h1>
+          <p className="text-[length:var(--t-base)] text-[var(--ink-3)] mt-1.5 max-w-xl">
+            Rebuilt from contract logs, so it needs no server and nothing can
+            appear here that did not happen on chain.
+          </p>
+        </div>
+        <ActionButton onClick={a.reload} disabled={a.loading} tone="quiet">
           <FaSync /> {a.loading ? "Reading…" : "Refresh"}
         </ActionButton>
-      </div>
+      </header>
 
-      <div className="flex gap-1 mb-5">
-        {[
-          { key: true, label: "Yours" },
-          { key: false, label: "Everyone" },
-        ].map((t) => (
-          <button key={String(t.key)} onClick={() => setMine(t.key)} className={`px-3 py-1.5 text-[length:var(--t-fine)] border transition-colors ${ mine === t.key
-                ? "border-[var(--rule)] bg-[var(--snow-sunk)] text-[var(--ink)]"
-                : "border-[var(--rule)] text-[var(--ink-3)] hover:text-[var(--ink)] hover:border-[var(--rule)]"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <Panel
+        flush
+        title={
+          <Segmented
+            options={[
+              { value: "mine" as const, label: "Yours" },
+              { value: "all" as const, label: "Everyone" },
+            ]}
+            value={mine ? "mine" : "all"}
+            onChange={(v) => setMine(v === "mine")}
+            label="Activity scope"
+            accent
+          />
+        }
+        aside={
+          <span className="text-[length:var(--t-fine)] text-[var(--ink-3)] tabular">
+            {a.items.length} entries
+          </span>
+        }
+      >
+        {/* With no wallet there is no address to scope the logs to, so what
+            is actually on screen is everyone's activity. Saying "connect a
+            wallet" while showing protocol-wide rows would misattribute every
+            line to the reader. */}
+        {mine && !a.isConnected && (
+          <p className="text-[length:var(--t-fine)] text-[var(--ochre)] px-3.5 py-2.5 border-b border-[var(--rule)]">
+            No wallet connected — showing everyone's activity.
+          </p>
+        )}
 
-      {mine && !a.isConnected && (
-        <p className="text-[length:var(--t-fine)] text-[var(--ochre)] mb-4">
-          Connect a wallet, or switch to Everyone.
-        </p>
-      )}
+        {a.error && (
+          <p className="text-[length:var(--t-fine)] text-[var(--falu)] p-3.5">{a.error}</p>
+        )}
 
-      {a.error && <p className="text-[length:var(--t-fine)] text-[var(--falu)] mb-4">{a.error}</p>}
-
-      {a.items.length === 0 ? (
-        <p className="text-[length:var(--t-base)] text-[var(--ink-3)]">
-          {a.loading ? "Reading the chain…" : "Nothing recorded yet."}
-        </p>
-      ) : (
-        <ul className="space-y-2">
-          {a.items.map((item, i) => (
-            <li key={`${item.txHash}-${i}`}>
-              <Row item={item} />
-            </li>
-          ))}
-        </ul>
-      )}
-    </Card>
+        {a.items.length === 0 ? (
+          <p className="text-[length:var(--t-base)] text-[var(--ink-3)] p-4">
+            {a.loading ? "Reading the chain…" : "Nothing recorded yet."}
+          </p>
+        ) : (
+          <ul>
+            {a.items.map((item, i) => (
+              <li key={`${item.txHash}-${i}`}>
+                <Row item={item} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+    </div>
   );
-}; const Row = ({ item }: { item: ActivityItem }) => { const body = (
+};
+
+const Row = ({ item }: { item: ActivityItem }) => {
+  const body = (
     <>
-      <span className={`text-[length:var(--t-fine)] shrink-0 ${TONES[item.kind]}`}>{ICONS[item.kind]}</span>
+      <span
+        className="w-6 h-6 grid place-items-center border border-[var(--rule)] rounded-[var(--r-control)] text-[10px] shrink-0"
+        style={{ color: TONES[item.kind] }}
+      >
+        {ICONS[item.kind]}
+      </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[length:var(--t-base)] text-[var(--ink)] truncate">{item.summary}</span>
-        <span className="block text-[length:var(--t-fine)] text-[var(--ink-3)] font-mono"> block {item.blockNumber.toString()}
+        <span className="block text-[length:var(--t-fine)] text-[var(--ink)] truncate">
+          {item.summary}
         </span>
       </span>
+      <span className="text-[length:var(--t-fine)] text-[var(--ink-4)] tabular shrink-0">
+        #{item.blockNumber.toString()}
+      </span>
     </>
-  ); return item.href ? (
-    <Link to={item.href} className="flex items-center gap-3 p-3 border border-[var(--rule)] hover:border-[var(--rule)] transition-colors"
-    >
+  );
+
+  const cls =
+    "flex items-center gap-3 px-3.5 py-2.5 border-b border-[var(--rule)] last:border-0 transition-colors";
+
+  return item.href ? (
+    <Link to={item.href} className={`${cls} hover:bg-[var(--sheet-raised)]`}>
       {body}
     </Link>
   ) : (
-    <div className="flex items-center gap-3 p-3 border border-[var(--rule)]">
-      {body}
-    </div>
+    <div className={cls}>{body}</div>
   );
-}; const Empty = ({ title, body }: { title: string; body: string }) => (
-  <div className="border border-dashed border-[var(--rule)] p-10 text-center">
+};
+
+const Empty = ({ title, body }: { title: string; body: string }) => (
+  <div className="border border-dashed border-[var(--rule)] rounded-[var(--r-panel)] p-12 text-center">
     <p className="text-[var(--ink)] font-bold">{title}</p>
     <p className="text-[length:var(--t-base)] text-[var(--ink-3)] mt-2">{body}</p>
   </div>

@@ -11,6 +11,8 @@ export type RegistryLaunch = {
   contributionAsset: string;
   creator: string;
   createdAt: bigint;
+  /** Publisher desk this was registered under; 0n when published solo. */
+  boardId: bigint;
   name: string;
   symbol: string;
   description: string;

@@ -1,27 +1,60 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { FaPlus, FaSearch, FaBookmark, FaRegBookmark } from "react-icons/fa";
+import { useMemo } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import {
+  FaPlus, FaSearch, FaBookmark, FaRegBookmark, FaBolt, FaClock,
+  FaFire, FaLayerGroup, FaExchangeAlt, FaChartLine, FaLock, FaFlagCheckered,
+} from "react-icons/fa";
 import { useSocial } from "../hooks/useSocial";
-import { ActionButton } from "./ActionButton";
-import { useRegistryFeed, SORTS, type FeedSort, type FeedRow } from "../hooks/useRegistryFeed";
+import { useRegistryFeed, type FeedRow } from "../hooks/useRegistryFeed";
 import { useProtocolStats } from "../hooks/useProtocolStats";
+import { useCurveSummary } from "../hooks/useCurveSummary";
+import { useBoards } from "../hooks/useBoards";
+import { ActionButton } from "./ActionButton";
 import { FeedSkeleton, StatSkeleton } from "./Skeleton";
-
-const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+import { Avatar } from "./ui/Avatar";
+import { Sparkline } from "./ui/Chart";
+import { Pills, Meter } from "./ui/Controls";
+import { Figure } from "./ui/Panel";
+import { short, compact, price as fmtPrice, pct, ago } from "./ui/format";
 
 /**
- * The launch feed. Reads LaunchRegistry, so anything deployed through the
- * wizard appears here without a rebuild.
+ * The launch feed.
  *
- * Cards report raised / settled / phase rather than price and volume: these
- * are sealed contribution rounds with an off-chain tally, so there is no
- * continuous market to chart and no public per-trade record to summarise.
+ * A grid of cards rather than a list of rows: a reader scanning launches is
+ * comparing them against each other, and a card puts each one's shape — its
+ * trace, its progress toward a target, its turnover — in the same place on
+ * every tile so the comparison is visual instead of read line by line.
+ *
+ * What a card reports depends on what the launch actually has. A sealed round
+ * that has not opened a market shows its raise and its settlement; one with a
+ * live curve shows price, trace and turnover. Neither borrows the other's
+ * figures, because a raise has no price and a curve has no tally.
  */
+
+type Lens = "newest" | "raised" | "active" | "watch";
+
+const LENSES = [
+  { value: "newest" as const, label: "Newest", icon: <FaClock />, hint: "Most recently published" },
+  { value: "active" as const, label: "Open", icon: <FaFire />, hint: "Still accepting contributions" },
+  { value: "raised" as const, label: "Top raised", icon: <FaChartLine />, hint: "Largest raise first" },
+  { value: "watch" as const, label: "All", icon: <FaLayerGroup />, hint: "Everything on this chain" },
+];
+
 export const Feed = ({ onCreate }: { onCreate: () => void }) => {
-  const [sort, setSort] = useState<FeedSort>("newest");
-  const [query, setQuery] = useState("");
-  const feed = useRegistryFeed(sort);
+  const [params, setParams] = useSearchParams();
+  const lens = (params.get("sort") as Lens) ?? "newest";
+  const query = params.get("q") ?? "";
+
+  const feed = useRegistryFeed(lens === "watch" ? "newest" : lens);
   const stats = useProtocolStats();
+  const { boards } = useBoards();
+
+  const setParam = (key: string, value: string) => {
+    const next = new URLSearchParams(params);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    setParams(next, { replace: true });
+  };
 
   // Matches name, ticker, summary and both addresses, so a pasted address
   // finds its raise as readily as a typed name.
@@ -29,13 +62,7 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
     const q = query.trim().toLowerCase();
     if (!q) return feed.rows;
     return feed.rows.filter((r) =>
-      [
-        r.launch.name,
-        r.launch.symbol,
-        r.launch.description,
-        r.launch.ido,
-        r.launch.creator,
-      ]
+      [r.launch.name, r.launch.symbol, r.launch.description, r.launch.ido, r.launch.creator]
         .join(" ")
         .toLowerCase()
         .includes(q),
@@ -53,62 +80,59 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
 
   return (
     <>
-      <header className="mb-6">
-        <h1 className="lead">Raises</h1>
-        <p className="text-[length:var(--t-base)] text-[var(--ink-3)] mt-1 max-w-2xl">
-          Sealed contribution rounds. What each backer puts in stays encrypted;
-          the split, the tally and every claim are public.
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
-          {feed.isLoading ? (
-            Array.from({ length: 4 }, (_, i) => <StatSkeleton key={i} />)
-          ) : (
-            <>
-          <Headline label="Raises" value={String(stats.raises)} />
-          <Headline label="Accepting funds" value={String(stats.open)} accent="text-[var(--ochre)]" />
-          <Headline
-            label="Raised in total"
-            value={stats.raised > 0n ? `${stats.compact(stats.raised)} ${stats.symbol}` : "—"}
-            accent="text-[var(--lichen)]"
-          />
-          <Headline
-            label="Paid out"
-            value={stats.distributed > 0n ? `${stats.compact(stats.distributed)} ${stats.symbol}` : "—"}
-          />
-            </>
-          )}
+      <header className="flex items-start justify-between gap-6 flex-wrap mb-5">
+        <div>
+          <h1 className="lead">Raises</h1>
+          <p className="text-[length:var(--t-base)] text-[var(--ink-3)] mt-1.5 max-w-2xl">
+            Sealed contribution rounds. What each backer puts in stays encrypted;
+            the split, the tally and every claim are public.
+          </p>
         </div>
+        <ActionButton onClick={onCreate}>
+          <FaPlus /> Start a raise
+        </ActionButton>
       </header>
 
-      <div className="flex items-center justify-between gap-4 flex-wrap mb-5">
-        <div className="flex gap-1">
-          {SORTS.map((s) => (
-            <button
-              key={s.key}
-              onClick={() => setSort(s.key)}
-              className={`px-3 py-1.5 text-[length:var(--t-fine)]  border transition-colors ${
-                sort === s.key
-                  ? "border-[var(--rule)] bg-[var(--snow-sunk)] text-[var(--ink)]"
-                  : "border-[var(--rule)] text-[var(--ink-3)] hover:text-[var(--ink)] hover:border-[var(--rule)]"
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mb-6">
+        {feed.isLoading ? (
+          Array.from({ length: 4 }, (_, i) => <StatSkeleton key={i} />)
+        ) : (
+          <>
+            <Figure label="Raises" value={String(stats.raises)} />
+            <Figure label="Accepting funds" value={String(stats.open)} tone="accent" emissive />
+            <Figure
+              label="Raised in total"
+              value={stats.raised > 0n ? `${stats.compact(stats.raised)} ${stats.symbol}` : "—"}
+            />
+            <Figure
+              label="Paid out"
+              value={stats.distributed > 0n ? `${stats.compact(stats.distributed)} ${stats.symbol}` : "—"}
+              sub={
+                stats.raised > 0n
+                  ? `${((Number(stats.distributed) / Number(stats.raised)) * 100).toFixed(0)}% of what was raised`
+                  : undefined
+              }
+            />
+          </>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+        <Pills options={LENSES} value={lens} onChange={(v) => setParam("sort", v)} label="Sort raises" />
+
         <div className="flex items-center gap-3 flex-wrap">
           <label className="relative">
-            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[length:var(--t-fine)] text-[var(--ink-3)]" />
+            <FaSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[length:var(--t-fine)] text-[var(--ink-4)]" />
             <input
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Find a raise or paste an address"
-              aria-label="Search raises"
-              className="bg-[var(--snow-sunk)] border border-[var(--rule)]  pl-8 pr-3 py-1.5 text-[length:var(--t-fine)] text-[var(--ink)] placeholder-gray-500 outline-none  w-64 max-w-full"
+              onChange={(e) => setParam("q", e.target.value)}
+              placeholder="Filter this list"
+              aria-label="Filter raises"
+              className="bg-[var(--snow-sunk)] border border-[var(--rule)] rounded-[var(--r-control)] pl-7 pr-3 py-1.5 text-[length:var(--t-fine)] text-[var(--ink)] placeholder:text-[var(--ink-4)] outline-none focus:border-[var(--ink-4)] transition-colors w-56 max-w-full"
             />
           </label>
-          <p className="text-[length:var(--t-fine)] text-[var(--ink-3)]">
-            {feed.total} {feed.total === 1 ? "raise" : "raises"} on chain {feed.chainId}
+          <p className="text-[length:var(--t-fine)] text-[var(--ink-3)] tabular">
+            {rows.length}/{feed.total} on chain {feed.chainId}
           </p>
         </div>
       </div>
@@ -122,13 +146,21 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
           <Empty
             title="No raises yet"
             body="Be the first. Deploying takes four signatures and about a minute."
-            action={<ActionButton onClick={onCreate}><FaPlus /> Start a raise</ActionButton>}
+            action={
+              <ActionButton onClick={onCreate}>
+                <FaPlus /> Start a raise
+              </ActionButton>
+            }
           />
         )
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
           {rows.map((row) => (
-            <Row key={row.launch.ido} row={row} />
+            <LaunchCard
+              key={row.launch.ido}
+              row={row}
+              desk={boards.find((b) => b.id === row.launch.boardId)?.slug}
+            />
           ))}
         </div>
       )}
@@ -136,128 +168,187 @@ export const Feed = ({ onCreate }: { onCreate: () => void }) => {
   );
 };
 
-const Row = ({ row }: { row: FeedRow }) => {
+/* ------------------------------------------------------------------ card */
+
+const LaunchCard = ({ row, desk }: { row: FeedRow; desk?: string }) => {
   const { launch } = row;
   const social = useSocial({ subject: launch.ido });
-  const settledPct =
-    row.raised > 0n ? Number((row.distributed * 10000n) / row.raised) / 100 : 0;
+  const curve = useCurveSummary(launch.ido);
+
+  const settledPct = row.raised > 0n ? Number((row.distributed * 10000n) / row.raised) / 100 : 0;
+  const raised = Number(row.format(row.raised));
 
   return (
-    <Link
-      to={`/raise/${launch.ido}`}
-      className="hud block bg-[var(--sheet)] border border-[var(--rule)] rounded-[var(--r-panel)] p-5 hover:border-[var(--rule)] hover:bg-[var(--sheet)] transition-colors focus:outline-none"
-    >
-      <div className="flex items-start gap-4">
-        <div className="w-11 h-11  bg-[var(--fjord-wash)] border border-[var(--rule)] grid place-items-center shrink-0 text-[length:var(--t-fine)] font-bold">
-          {launch.symbol.slice(0, 4)}
-        </div>
+    <article className="card-link hud relative">
+      <Link
+        to={`/raise/${launch.ido}`}
+        className="block p-3.5 focus:outline-none"
+        aria-label={`${launch.name} (${launch.symbol})`}
+      >
+        {/* --- identity --- */}
+        <div className="flex items-start gap-3">
+          <Avatar
+            src={launch.logoURI || undefined}
+            seed={launch.ido}
+            fallback={launch.symbol}
+            size={40}
+            badge="A"
+          />
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-bold text-[var(--ink)]">{launch.name}</span>
-            <span className="text-[length:var(--t-fine)] text-[var(--ink-3)]">{launch.symbol}</span>
-            {row.finalized ? (
-              <Tag tone="emerald">tally published</Tag>
-            ) : (
-              <Tag tone="amber">accepting funds</Tag>
-            )}
-            {row.locked && <Tag tone="violet">splits frozen</Tag>}
-            {social.isConnected && social.available && (
-              <button
-                onClick={(ev) => {
-                  // The whole card is a link; saving must not navigate.
-                  ev.preventDefault();
-                  ev.stopPropagation();
-                  social.toggleSave();
-                }}
-                disabled={social.busy}
-                aria-label={social.isSaved ? "Remove from watchlist" : "Save to watchlist"}
-                className="ml-auto text-[var(--ink-3)] hover:text-[var(--ochre)] transition-colors disabled:opacity-40"
-              >
-                {social.isSaved ? (
-                  <FaBookmark className="text-[var(--ochre)] text-[length:var(--t-fine)]" />
-                ) : (
-                  <FaRegBookmark className="text-[length:var(--t-fine)]" />
-                )}
-              </button>
-            )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 min-w-0">
+              <h3 className="font-bold text-[var(--ink)] truncate">{launch.name}</h3>
+              <span className="text-[length:var(--t-fine)] text-[var(--ink-3)] shrink-0">
+                {launch.symbol}
+              </span>
+            </div>
+
+            {/* Type, creator, desk — the reference's one-line provenance strip. */}
+            <p className="text-[length:var(--t-fine)] text-[var(--ink-3)] mt-0.5 flex items-center gap-1.5 flex-wrap">
+              <FaLock className="text-[9px]" aria-hidden="true" />
+              <span className="uppercase tracking-[0.1em]">sealed</span>
+              <span className="text-[var(--ink-4)]">by</span>
+              <span className="text-[var(--ink-2)]">{short(launch.creator)}</span>
+              {desk && (
+                <>
+                  <span className="text-[var(--ink-4)]">on</span>
+                  <span className="text-[var(--ink-2)]">/{desk}</span>
+                </>
+              )}
+            </p>
           </div>
 
-          {launch.description && (
-            <p className="text-[length:var(--t-fine)] text-[var(--ink-2)] mt-1.5">{launch.description}</p>
-          )}
+          <Badge row={row} curve={curve} />
+        </div>
 
-          <p className="text-[length:var(--t-fine)] text-[var(--ink-3)] mt-1.5">
-            started by {short(launch.creator)} · vault {short(launch.feeRouter)}
+        {launch.description && (
+          <p className="text-[length:var(--t-fine)] text-[var(--ink-2)] mt-2.5 clamp-2 min-h-[2.4em]">
+            {launch.description}
           </p>
+        )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
-            <Stat
-              label="raised"
-              value={Number(row.format(row.raised)).toLocaleString()}
-              sub={row.assetSymbol}
-            />
-            <Stat
-              label="paid out"
-              value={`${settledPct.toFixed(0)}%`}
-              sub={`${Number(row.format(row.distributed)).toLocaleString()} ${row.assetSymbol}`}
-            />
-            <Stat label="recipients" value={String(row.splitCount)} />
-            <Stat
-              label="phase"
-              value={row.finalized ? "Claiming" : "Open"}
-              sub={row.locked ? "splits frozen" : undefined}
-            />
+        {/* --- the body differs by what the launch actually has --- */}
+        {curve.exists && curve.fills > 0 ? (
+          <div className="mt-3">
+            <div className="flex items-baseline justify-between gap-3 mb-1">
+              <span className="text-[length:var(--t-base)] font-bold tabular emissive text-[var(--ink)]">
+                {fmtPrice(curve.price)}
+              </span>
+              <span
+                className="text-[length:var(--t-fine)] font-bold tabular"
+                style={{ color: curve.change >= 0 ? "var(--gain)" : "var(--loss)" }}
+              >
+                {pct(curve.change)}
+              </span>
+            </div>
+            <Sparkline points={curve.prices} height={54} />
           </div>
+        ) : (
+          <div className="mt-3">
+            <Meter
+              value={Number(row.distributed)}
+              max={Number(row.raised) || 1}
+              left={
+                <span className="text-[length:var(--t-fine)] text-[var(--ink-3)]">
+                  raised{" "}
+                  <span className="text-[var(--ink)] font-bold tabular">
+                    {compact(raised)} {row.assetSymbol}
+                  </span>
+                </span>
+              }
+              right={
+                <span className="text-[length:var(--t-fine)] text-[var(--ink-3)] tabular">
+                  {settledPct.toFixed(0)}% paid out
+                </span>
+              }
+            />
+            <p className="text-[length:var(--t-fine)] text-[var(--ink-4)] mt-2">
+              opened {ago(Number(launch.createdAt))} ago · {row.splitCount}{" "}
+              {row.splitCount === 1 ? "recipient" : "recipients"}
+            </p>
+          </div>
+        )}
+
+        {/* --- footer figures --- */}
+        <div className="flex items-center gap-4 mt-3 pt-2.5 border-t border-[var(--rule)] text-[length:var(--t-fine)] text-[var(--ink-3)]">
+          {curve.exists && curve.fills > 0 ? (
+            <>
+              <span className="flex items-center gap-1.5 tabular">
+                <FaExchangeAlt className="text-[10px]" aria-hidden="true" />
+                {compact(curve.fills)} fills
+              </span>
+              <span className="flex items-center gap-1.5 tabular">
+                <FaChartLine className="text-[10px]" aria-hidden="true" />
+                {compact(curve.format(curve.volume))} vol
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="flex items-center gap-1.5 tabular">
+                <FaBolt className="text-[10px]" aria-hidden="true" />
+                {row.finalized ? "tally published" : "accepting"}
+              </span>
+              <span className="flex items-center gap-1.5 tabular">
+                {row.locked ? "splits frozen" : "splits open"}
+              </span>
+            </>
+          )}
         </div>
-      </div>
-    </Link>
+      </Link>
+
+      {/* Sits outside the link: saving must not navigate. */}
+      {social.isConnected && social.available && (
+        <button
+          onClick={social.toggleSave}
+          disabled={social.busy}
+          aria-label={social.isSaved ? "Remove from watchlist" : "Save to watchlist"}
+          className="absolute bottom-3 right-3 text-[var(--ink-4)] hover:text-[var(--falu)] transition-colors disabled:opacity-40"
+        >
+          {social.isSaved ? (
+            <FaBookmark className="text-[var(--falu)] text-[length:var(--t-fine)]" />
+          ) : (
+            <FaRegBookmark className="text-[length:var(--t-fine)]" />
+          )}
+        </button>
+      )}
+    </article>
   );
 };
 
-const Tag = ({
-  children,
-  tone,
+/**
+ * The one badge a card carries.
+ *
+ * Ranked by what most changes a reader's decision: a graduated curve is
+ * finished, a high-water mark is the number a trader looks for, and a raise
+ * that is still accepting is the one they can still join.
+ */
+const Badge = ({
+  row,
+  curve,
 }: {
-  children: React.ReactNode;
-  tone: "emerald" | "amber" | "violet";
+  row: FeedRow;
+  curve: ReturnType<typeof useCurveSummary>;
 }) => {
-  const tones = {
-    emerald: "border-[var(--lichen)] text-[var(--lichen)]",
-    amber: "border-[var(--ochre)] text-[var(--ochre)]",
-    violet: "border-[var(--fjord)] text-[var(--fjord)]",
-  } as const;
-  return (
-    <span
-      className={`text-[length:var(--t-fine)] uppercase tracking-wider px-1.5 py-0.5 border rounded ${tones[tone]}`}
-    >
-      {children}
-    </span>
+  if (curve.exists && curve.graduated) {
+    return (
+      <span className="mark mark--settled shrink-0">
+        <FaFlagCheckered className="text-[9px]" /> graduated
+      </span>
+    );
+  }
+  if (curve.exists && curve.ath > 0) {
+    return (
+      <span className="mark mark--live shrink-0 tabular" title="Distance from the high-water mark">
+        ath {curve.fromAth === 0 ? "now" : `${curve.fromAth.toFixed(1)}%`}
+      </span>
+    );
+  }
+  return row.finalized ? (
+    <span className="mark mark--sealed shrink-0">claiming</span>
+  ) : (
+    <span className="mark mark--held shrink-0">open</span>
   );
 };
-
-const Stat = ({ label, value, sub }: { label: string; value: string; sub?: string }) => (
-  <div>
-    <p className="text-[length:var(--t-fine)] uppercase tracking-wider text-[var(--ink-3)]">{label}</p>
-    <p className="text-[length:var(--t-base)] font-bold text-[var(--ink)] truncate" title={value}>{value}</p>
-    {sub && <p className="text-[length:var(--t-fine)] text-[var(--ink-3)] truncate">{sub}</p>}
-  </div>
-);
-
-const Headline = ({
-  label,
-  value,
-  accent = "text-[var(--ink)]",
-}: {
-  label: string;
-  value: string;
-  accent?: string;
-}) => (
-  <div className="bg-[var(--sheet)] border border-[var(--rule)]  p-3.5">
-    <p className="text-[length:var(--t-fine)] uppercase tracking-wider text-[var(--ink-3)]">{label}</p>
-    <p className={`text-[length:var(--t-base)] font-bold mt-1 tabular truncate emissive ${accent}`} title={value}>{value}</p>
-  </div>
-);
 
 const Empty = ({
   title,
@@ -268,7 +359,7 @@ const Empty = ({
   body: string;
   action?: React.ReactNode;
 }) => (
-  <div className="border border-dashed border-[var(--rule)]  p-10 text-center">
+  <div className="border border-dashed border-[var(--rule)] rounded-[var(--r-panel)] p-12 text-center">
     <p className="text-[var(--ink)] font-bold">{title}</p>
     <p className="text-[length:var(--t-base)] text-[var(--ink-3)] mt-2 max-w-md mx-auto">{body}</p>
     {action && <div className="mt-5 flex justify-center">{action}</div>}

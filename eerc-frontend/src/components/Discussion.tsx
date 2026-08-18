@@ -1,87 +1,301 @@
-import { FaComment, FaTimes } from "react-icons/fa";
-import { Card } from "./Card";
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { FaComment, FaReply, FaTimes, FaLink } from "react-icons/fa";
+import { Panel } from "./ui/Panel";
+import { Segmented } from "./ui/Controls";
+import { Avatar } from "./ui/Avatar";
 import { ActionButton } from "./ActionButton";
-import { useComments, MAX_COMMENT_LENGTH } from "../hooks/useComments"; const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`; const ago = (seconds: bigint) => { const diff = Math.max(0, Math.floor(Date.now() / 1000) - Number(seconds)); if (diff < 60) return "just now"; if (diff < 3600) return `${Math.floor(diff / 60)}m ago`; if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`; return `${Math.floor(diff / 86400)}d ago`;
-};
+import { useComments, MAX_COMMENT_LENGTH, type CommentEntry } from "../hooks/useComments";
+import { short, ago } from "./ui/format";
 
 /**
  * On-chain discussion for one raise.
  *
  * Every comment is signed by its author, so attribution needs no server to
- * vouch for it. The cost of posting is stated up front rather than appearing
- * as a surprise signature prompt.
+ * vouch for it, and the cost of posting is stated in the composer rather than
+ * appearing as a surprise signature prompt.
+ *
+ * Threading is carried in the body as a `↪#<index>` marker rather than in a
+ * second contract. The marker is written by the reply control, parsed back
+ * out for display, and points at the comment's stored index — which is what
+ * the contract already addresses entries by. This keeps replies verifiable
+ * from chain data alone; an off-chain thread table would be a claim about the
+ * conversation that the conversation itself could not confirm.
+ *
+ * There are no vote counts. The contract stores none, and a score kept in
+ * this browser would look identical to one the network agreed on while
+ * meaning nothing.
  */
-export const Discussion = ({ subject }: { subject: string }) => { const c = useComments(subject); if (!c.available) { return (
-      <Card title="Discussion">
+
+const MARKER = /^↪#(\d+)\s*/;
+
+type Node = {
+  entry: CommentEntry;
+  /** Stored index — what the contract addresses this comment by. */
+  id: number;
+  parent: number | null;
+  body: string;
+  children: Node[];
+};
+
+export const Discussion = ({
+  subject,
+  creator,
+}: {
+  subject: string;
+  /** Marked in the thread, so the reader can tell the team from the crowd. */
+  creator?: string;
+}) => {
+  const c = useComments(subject);
+  const [order, setOrder] = useState<"newest" | "oldest">("newest");
+  const [replyTo, setReplyTo] = useState<number | null>(null);
+
+  /**
+   * page() returns newest-first, so a comment's stored index is
+   * total - 1 - positionFromNewest. Every id below is that stored index.
+   */
+  const tree = useMemo(() => {
+    const nodes: Node[] = c.comments.map((entry, i) => {
+      const id = c.total - 1 - i;
+      const m = MARKER.exec(entry.body);
+      return {
+        entry,
+        id,
+        parent: m ? Number(m[1]) : null,
+        body: m ? entry.body.slice(m[0].length) : entry.body,
+        children: [],
+      };
+    });
+
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    const roots: Node[] = [];
+    for (const n of nodes) {
+      const parent = n.parent !== null ? byId.get(n.parent) : undefined;
+      // A reply whose parent was never fetched is shown at the top level
+      // rather than dropped — losing a comment is worse than losing a nesting.
+      if (parent && parent.id !== n.id) parent.children.push(n);
+      else roots.push(n);
+    }
+
+    const sort = (list: Node[]) =>
+      list.sort((a, b) => (order === "newest" ? b.id - a.id : a.id - b.id));
+    sort(roots);
+    for (const n of nodes) n.children.sort((a, b) => a.id - b.id);
+    return roots;
+  }, [c.comments, c.total, order]);
+
+  if (!c.available) {
+    return (
+      <Panel title="Discussion">
         <p className="text-[length:var(--t-base)] text-[var(--ink-3)]">
           No discussion contract is deployed on this network.
         </p>
-      </Card>
+      </Panel>
     );
-  } return (
-    <Card title={`Discussion${c.total > 0 ? ` (${c.total})` : ""}`}>
+  }
+
+  const parentOf = replyTo !== null ? c.comments.find((_, i) => c.total - 1 - i === replyTo) : null;
+
+  const submit = () => {
+    if (replyTo !== null) {
+      // Written into the body before posting, so the thread survives without
+      // this client: anyone reading the chain sees the same structure.
+      c.setDraft(`↪#${replyTo} ${c.draft.replace(MARKER, "")}`);
+    }
+    void c.post().then(() => setReplyTo(null));
+  };
+
+  return (
+    <Panel
+      title={`Discussion${c.total > 0 ? ` · ${c.total}` : ""}`}
+      aside={
+        c.total > 1 && (
+          <Segmented
+            options={[
+              { value: "newest" as const, label: "Newest" },
+              { value: "oldest" as const, label: "Oldest" },
+            ]}
+            value={order}
+            onChange={setOrder}
+            label="Comment order"
+          />
+        )
+      }
+    >
+      {/* ---- composer ---- */}
       {c.isConnected ? (
-        <div className="mb-6">
-          <textarea value={c.draft} onChange={(e) => c.setDraft(e.target.value)} placeholder="Say something useful about this raise." rows={3} className="w-full bg-[var(--snow-sunk)] border border-[var(--rule)] px-4 py-3 text-[length:var(--t-base)] text-[var(--ink)] placeholder-gray-500 outline-none resize-y"
+        <div className="mb-5">
+          {parentOf && (
+            <p className="text-[length:var(--t-fine)] text-[var(--ink-3)] mb-1.5 flex items-center gap-2">
+              <FaReply className="text-[10px]" />
+              replying to{" "}
+              <span className="text-[var(--ink-2)]">{short(parentOf.author)}</span>
+              <button
+                onClick={() => setReplyTo(null)}
+                className="text-[var(--ink-4)] hover:text-[var(--falu)] transition-colors"
+                aria-label="Cancel reply"
+              >
+                <FaTimes className="text-[10px]" />
+              </button>
+            </p>
+          )}
+          <textarea
+            value={c.draft.replace(MARKER, "")}
+            onChange={(e) => c.setDraft(e.target.value)}
+            placeholder="Say something useful about this raise."
+            rows={3}
+            className="w-full bg-[var(--snow-sunk)] border border-[var(--rule)] rounded-[var(--r-control)] px-3 py-2.5 text-[length:var(--t-base)] text-[var(--ink)] placeholder:text-[var(--ink-4)] outline-none focus:border-[var(--ink-4)] transition-colors resize-y"
           />
           <div className="flex items-center justify-between gap-3 mt-2 flex-wrap">
-            <p className={`text-[length:var(--t-fine)] ${c.tooLong ? "text-[var(--falu)]" : "text-[var(--ink-3)]"}`}>
-              {c.draft.length}/{MAX_COMMENT_LENGTH} · stored on chain, so posting costs gas and cannot be edited later
+            <p
+              className="text-[length:var(--t-fine)] tabular"
+              style={{ color: c.tooLong ? "var(--falu)" : "var(--ink-3)" }}
+            >
+              {c.draft.replace(MARKER, "").length}/{MAX_COMMENT_LENGTH} · stored on
+              chain, so posting costs gas and cannot be edited later
             </p>
-            <ActionButton onClick={c.post} disabled={!c.canPost}>
-              <FaComment /> {c.busy ? "Posting…" : "Post"}
+            <ActionButton onClick={submit} disabled={!c.canPost}>
+              <FaComment /> {c.busy ? "Posting…" : replyTo !== null ? "Reply" : "Post"}
             </ActionButton>
           </div>
           {c.status && (
-            <p className="text-[length:var(--t-fine)] text-[var(--falu)] mt-2 break-words">{c.status}</p>
+            <p className="text-[length:var(--t-fine)] text-[var(--falu)] mt-2 break-words">
+              {c.status}
+            </p>
           )}
         </div>
       ) : (
-        <p className="text-[length:var(--t-fine)] text-[var(--ochre)] mb-6">
+        <p className="text-[length:var(--t-fine)] text-[var(--ochre)] mb-5">
           Connect a wallet to join the discussion.
         </p>
       )}
 
-      {c.comments.length === 0 ? (
+      {/* ---- thread ---- */}
+      {tree.length === 0 ? (
         <p className="text-[length:var(--t-base)] text-[var(--ink-3)]">
           Nothing here yet. Be the first to weigh in.
         </p>
       ) : (
         <ul className="space-y-3">
-          {c.comments.map((entry, i) => (
-            <li key={`${entry.author}-${entry.postedAt}-${i}`} className="bg-[var(--sheet)] border border-[var(--rule)] p-4"
-            >
-              <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
-                <span className="text-[length:var(--t-fine)] font-bold text-[var(--ink-2)] font-mono">
-                  {short(entry.author)}
-                  {c.address?.toLowerCase() === entry.author.toLowerCase() && (
-                    <span className="ml-2 text-[length:var(--t-fine)] text-[var(--lichen)] font-normal"> you
-                    </span>
-                  )}
-                </span>
-                <span className="flex items-center gap-3">
-                  <span className="text-[length:var(--t-fine)] text-[var(--ink-3)]">{ago(entry.postedAt)}</span>
-                  {!entry.hidden && c.address?.toLowerCase() === entry.author.toLowerCase() && (
-                      <button onClick={() => c.withdraw(i)} disabled={c.busy} aria-label="Withdraw comment" className="text-[var(--ink-3)] hover:text-[var(--falu)] transition-colors disabled:opacity-40"
-                      >
-                        <FaTimes className="text-[length:var(--t-fine)]" />
-                      </button>
-                    )}
-                </span>
-              </div>
-              {entry.hidden ? (
-                <p className="text-[length:var(--t-fine)] text-[var(--ink-3)] italic">
-                  Withdrawn by its author.
-                </p>
-              ) : (
-                <p className="text-[length:var(--t-base)] text-[var(--ink)] whitespace-pre-wrap break-words">
-                  {entry.body}
-                </p>
-              )}
+          {tree.map((n) => (
+            <li key={n.id}>
+              <Entry
+                node={n}
+                you={c.address}
+                creator={creator}
+                busy={c.busy}
+                onReply={setReplyTo}
+                onWithdraw={(id) => c.withdraw(c.total - 1 - id)}
+              />
             </li>
           ))}
         </ul>
       )}
-    </Card>
+    </Panel>
+  );
+};
+
+const Entry = ({
+  node,
+  you,
+  creator,
+  busy,
+  onReply,
+  onWithdraw,
+  depth = 0,
+}: {
+  node: Node;
+  you?: string;
+  creator?: string;
+  busy: boolean;
+  onReply: (id: number) => void;
+  onWithdraw: (id: number) => void;
+  depth?: number;
+}) => {
+  const mine = you?.toLowerCase() === node.entry.author.toLowerCase();
+  const isCreator = creator?.toLowerCase() === node.entry.author.toLowerCase();
+
+  return (
+    <>
+      <div className="flex gap-3">
+        <Avatar seed={node.entry.author} fallback={node.entry.author.slice(2, 4)} size={28} />
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link
+              to={`/u/${node.entry.author}`}
+              className="text-[length:var(--t-fine)] font-bold text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors"
+            >
+              {short(node.entry.author)}
+            </Link>
+            {isCreator && <span className="mark mark--live">creator</span>}
+            {mine && !isCreator && <span className="mark mark--sealed">you</span>}
+            <span
+              className="text-[length:var(--t-fine)] text-[var(--ink-4)]"
+              title={new Date(Number(node.entry.postedAt) * 1000).toLocaleString()}
+            >
+              {ago(node.entry.postedAt)}
+            </span>
+          </div>
+
+          {node.entry.hidden ? (
+            <p className="text-[length:var(--t-fine)] text-[var(--ink-4)] italic mt-1">
+              Withdrawn by its author.
+            </p>
+          ) : (
+            <p className="text-[length:var(--t-base)] text-[var(--ink)] whitespace-pre-wrap break-words mt-1">
+              {node.body}
+            </p>
+          )}
+
+          <div className="flex items-center gap-4 mt-1.5">
+            <button
+              onClick={() => onReply(node.id)}
+              className="text-[length:var(--t-fine)] text-[var(--ink-4)] hover:text-[var(--ink)] transition-colors flex items-center gap-1.5"
+            >
+              <FaReply className="text-[10px]" /> Reply
+            </button>
+            <button
+              onClick={() =>
+                navigator.clipboard?.writeText(`${window.location.href}#c${node.id}`)
+              }
+              className="text-[length:var(--t-fine)] text-[var(--ink-4)] hover:text-[var(--ink)] transition-colors flex items-center gap-1.5"
+              aria-label="Copy a link to this comment"
+            >
+              <FaLink className="text-[10px]" /> Link
+            </button>
+            {mine && !node.entry.hidden && (
+              <button
+                onClick={() => onWithdraw(node.id)}
+                disabled={busy}
+                className="text-[length:var(--t-fine)] text-[var(--ink-4)] hover:text-[var(--falu)] transition-colors flex items-center gap-1.5 disabled:opacity-40"
+              >
+                <FaTimes className="text-[10px]" /> Withdraw
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* One level of indent, with a connector rule. Deeper threads keep the
+          same indent rather than marching off the right edge. */}
+      {node.children.length > 0 && (
+        <ul className="mt-3 space-y-3 pl-3.5 ml-3.5 border-l border-[var(--rule)]">
+          {node.children.map((child) => (
+            <li key={child.id}>
+              <Entry
+                node={child}
+                you={you}
+                creator={creator}
+                busy={busy}
+                onReply={onReply}
+                onWithdraw={onWithdraw}
+                depth={Math.min(depth + 1, 1)}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
   );
 };

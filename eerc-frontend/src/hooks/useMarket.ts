@@ -19,6 +19,14 @@ export const getMarket = (chainId: number, sale?: string): string | undefined =>
 
 export type TradePoint = {
   blockNumber: bigint;
+  /**
+   * Unix seconds, read from the block the fill landed in.
+   *
+   * Without it the chart can only plot fills in sequence, which makes a burst
+   * of trades and a quiet week look identical. Timeframes, the 24h change and
+   * the candle buckets all need real time.
+   */
+  timestamp: number;
   priceX18: bigint;
   side: "buy" | "sell";
   actor: string;
@@ -29,9 +37,21 @@ export type TradePoint = {
 const BOUGHT = parseAbiItem(
   "event Bought(address indexed buyer, uint256 baseIn, uint256 tokensOut, uint256 fee, uint256 priceX18)",
 );
+/** Blocks to resolve timestamps for, newest-first. */
+const MAX_TIMESTAMP_READS = 300;
+
 const SOLD = parseAbiItem(
   "event Sold(address indexed seller, uint256 tokensIn, uint256 baseOut, uint256 fee, uint256 priceX18)",
 );
+
+/**
+ * Everything the market surfaces read.
+ *
+ * The launch page mounts this once and hands the value to the chart, the
+ * trade panel and the fills table. Each of those calling the hook itself
+ * would replay the curve's whole log history three times over for one page.
+ */
+export type MarketState = ReturnType<typeof useMarket>;
 
 /**
  * The public trading phase for a launch.
@@ -106,7 +126,8 @@ export function useMarket(sale?: string) {
       publicClient.getLogs({ address: curve, event: SOLD, fromBlock: 0n }),
     ]);
 
-    const points: TradePoint[] = [
+    // Timestamps are attached below, once the blocks they need are read.
+    const points: Omit<TradePoint, "timestamp">[] = [
       ...buys.map((l) => {
         const a = (l as unknown as { args: { buyer: string; baseIn: bigint; tokensOut: bigint; priceX18: bigint } }).args;
         return {
@@ -131,7 +152,30 @@ export function useMarket(sale?: string) {
       }),
     ].sort((x, y) => (x.blockNumber > y.blockNumber ? 1 : x.blockNumber < y.blockNumber ? -1 : 0));
 
-    setTrades(points);
+    // One read per *block*, not per fill: a busy block holds many trades and
+    // they all share its timestamp. Capped so a long-lived curve cannot fan
+    // out into hundreds of round-trips on page load.
+    const blocks = [...new Set(points.map((p) => p.blockNumber))].slice(-MAX_TIMESTAMP_READS);
+    const stamps = new Map<bigint, number>();
+    await Promise.all(
+      blocks.map(async (b) => {
+        try {
+          const block = await publicClient.getBlock({ blockNumber: b });
+          stamps.set(b, Number(block.timestamp));
+        } catch {
+          // A pruned or unavailable block falls back below rather than
+          // dropping the fill: a trade with an approximate time is still a
+          // trade, and losing it would understate volume.
+        }
+      }),
+    );
+
+    setTrades(
+      points.map((p) => ({
+        ...p,
+        timestamp: stamps.get(p.blockNumber) ?? Number(p.blockNumber),
+      })),
+    );
   }, [publicClient, curve]);
 
   useEffect(() => {
@@ -241,7 +285,45 @@ export function useMarket(sale?: string) {
 
   const progressBps = Number((data?.[5]?.result as bigint | undefined) ?? 0n);
 
+  /**
+   * Figures a reader compares a launch on: turnover, the high-water mark, and
+   * the move over the last day.
+   *
+   * All three are summed from the curve's own fills rather than an index, so
+   * they cannot drift from what the chain says. A launch younger than a day
+   * reports its change since the first fill and says so, instead of printing
+   * a 24h figure it does not have.
+   */
+  const stats = useMemo(() => {
+    const priced = trades.map((t) => Number(t.priceX18) / 1e18);
+    const volumeBase = trades.reduce((sum, t) => sum + t.baseAmount, 0n);
+    const last = priced[priced.length - 1] ?? 0;
+    const first = priced[0] ?? 0;
+    const ath = priced.length ? Math.max(...priced) : 0;
+
+    const dayAgo = Math.floor(Date.now() / 1000) - 86_400;
+    const older = trades.filter((t) => t.timestamp <= dayAgo);
+    const hasFullDay = older.length > 0;
+    const base = hasFullDay
+      ? Number(older[older.length - 1].priceX18) / 1e18
+      : first;
+
+    return {
+      volumeBase,
+      fills: trades.length,
+      ath,
+      /** How far off the high the price sits now, as a negative percentage. */
+      fromAth: ath > 0 ? ((last - ath) / ath) * 100 : 0,
+      change: base > 0 ? ((last - base) / base) * 100 : 0,
+      /** What the change actually measures, so the label cannot overclaim. */
+      changeWindow: hasFullDay ? ("24h" as const) : ("open" as const),
+      last,
+      first,
+    };
+  }, [trades]);
+
   return {
+    stats,
     exists: !!curve,
     curve,
     priceX18: (data?.[0]?.result as bigint | undefined) ?? 0n,

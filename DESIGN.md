@@ -107,11 +107,48 @@ Two cascade rules learned the hard way:
 - **Square.** No border radius anywhere. The sheet is printed, not rounded.
 - **Hairlines carry structure.** One `--rule` line separates sections; boxes do
   not each draw their own outline. No card inside a card.
-- **Rail, not tabs.** Eight destinations wrap onto two rows as a horizontal
-  strip; in a rail they fit one per line at any width.
+- **Rail, not tabs,** for navigation. Eleven destinations wrap onto two rows as
+  a horizontal strip; in a rail they fit one per line at any width. Tabs are
+  reserved for views of the *same* subject — the trades, discussion and holders
+  of one launch — which is the only case they beat a rail.
 - **Tabular figures always.** Digits must align down a column and must not
   reflow width as they tick.
 - **Reversal, not size,** for a control that outranks its neighbours.
+
+### The surface primitives
+
+Added when the app went from one stacked column to a launch grid, a market
+page and a wizard. All of them are built from tokens already above; the
+information architecture is borrowed from the reference boards, the drawing
+is not.
+
+| Primitive | What it is | Rule it carries |
+|---|---|---|
+| `.panel` | ruled region, optional head on a full-width rule | a column of panels reads as one document |
+| `.chip` | label + figure in one bounded cell | the metadata strip on a launch |
+| `.seg` | bounded strip with internal rules | these are the states of **one** control |
+| `.tabbar` / `.tab` | rule under the live tab | views of one subject |
+| `.meter` | progress with quarter ticks | **never drawn without its denominator** |
+| `.plot` | hairline graticule from `--rule` | the chart's own field |
+| `.avatar` | mark, with a chain badge on the corner | falls back to the ticker, never a broken glyph |
+| `.card-link` | a whole card that navigates | rule brightens, ground lifts, **nothing moves** |
+
+**The card grid.** A reader scanning launches is comparing them, so each tile
+puts its trace, its progress and its turnover in the same place. What a card
+reports depends on what the launch *has*: a sealed round with no market shows
+its raise and settlement, one with a live curve shows price, trace and volume.
+Neither borrows the other's figures — a raise has no price and a curve has no
+tally, and printing a zero for the missing one is a lie about the data.
+
+**One emissive control.** `.cta-emissive` puts the phosphor bloom on the
+primary create action and nothing else. The ban on glow below is a ban on
+*decorative* glow; the accent's own lighting model, applied once per screen to
+the one action that matters, is the archetype rather than a violation of it.
+
+**Charts draw only what happened.** Candles bucket real fills; an empty
+interval produces no candle rather than a flat one carried forward. Change is
+labelled by the window it actually measures — a launch younger than a day
+reports "since open", never a 24h figure it does not have.
 
 ## Motion
 
@@ -128,12 +165,23 @@ Almost none, and it must mean something.
 
 Banned here, and the detector enforces most of them:
 
-gradient fills · glow and colored shadows · glassmorphism / backdrop blur ·
+gradient fills · decorative glow and colored shadows (the single
+`.cta-emissive` bloom is the stated exception) · glassmorphism / backdrop blur ·
 border radius · pulsing dots · particle backdrops · Inter / Roboto / Geist /
 Plus Jakarta / Space Grotesk / Fraunces · text below 12px · cards inside cards ·
 numbered section labels · third-party accents left at their vendor default
 (RainbowKit is themed to this palette; its stock blue is 4.2:1 and belongs to
 no palette here).
+
+Two more, earned on this pass:
+
+- **No progress bar without its target.** A bar with no denominator cannot
+  distinguish 90% of a small goal from 9% of a large one, which on a launch
+  page is the entire question.
+- **No figure the contracts do not produce.** Vote counts, holder counts on a
+  sealed round, a 24h change with under a day of history: if the chain does not
+  say it, the surface does not print it. A number kept in this browser looks
+  identical to one the network agreed on and means nothing.
 
 ## Verification
 
