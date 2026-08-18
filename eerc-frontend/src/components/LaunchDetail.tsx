@@ -28,6 +28,7 @@ import { Promote } from "./Promote";
 import { Contribute } from "./Contribute";
 import { ProofVerifier } from "./ProofVerifier";
 import { PrivacyLedger } from "./PrivacyLedger";
+import { Timeline } from "./Timeline";
 import { getMarket } from "../hooks/useMarket";
 
 type Tab = "trades" | "comments" | "holders" | "split" | "promote" | "privacy";
@@ -255,6 +256,11 @@ export const LaunchDetail = () => {
               {tab === "promote" && <Promote sale={launch.ido} />}
               {tab === "privacy" && (
                 <div className="space-y-4">
+                  <Timeline
+                    createdAt={Number(launch.createdAt)}
+                    finalized={sale.finalized}
+                    m={m}
+                  />
                   <PrivacyLedger />
                   <ProofVerifier ido={launch.ido} />
                 </div>

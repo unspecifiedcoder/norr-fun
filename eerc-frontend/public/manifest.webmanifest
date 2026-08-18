@@ -1,0 +1,10 @@
+{
+  "name": "norr.fun — private IDO platform",
+  "short_name": "norr.fun",
+  "description": "Sealed contribution rounds with public, verifiable settlement on Avalanche.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08090a",
+  "theme_color": "#08090a",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

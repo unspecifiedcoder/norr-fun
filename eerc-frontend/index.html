@@ -3,9 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="theme-color" content="#0a0a11" />
+    <!-- The ground colour the app actually paints, so the browser chrome
+         does not sit a shade off the page it frames. -->
+    <meta name="theme-color" content="#08090a" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>norr.fun — Private IDO Platform</title>
+    <meta
+      name="description"
+      content="Run a token raise where contribution amounts stay sealed but settlement is publicly verifiable. Sealed rounds, on-chain payout splits, Merkle-verified claims."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="norr.fun" />
+    <meta property="og:title" content="norr.fun — private contribution, public settlement" />
+    <meta
+      property="og:description"
+      content="Contribution amounts stay encrypted while the round runs. The split, the tally and every claim are public and checkable on chain."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
     <div id="root"></div>

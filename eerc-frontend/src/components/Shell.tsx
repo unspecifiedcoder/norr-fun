@@ -84,7 +84,15 @@ export const Shell = ({ children }: { children: React.ReactNode }) => {
       <div className="flex-1 min-w-0 flex flex-col">
         <NodeStatus />
         <TopBar />
-        <main className="flex-1 px-4 sm:px-6 py-6 w-full max-w-[1600px]">{children}</main>
+        {/* Keyed on the path so a route change replays the settle: content
+            arrives rather than snapping into place. 180ms, and nothing at all
+            under prefers-reduced-motion. */}
+        <main
+          key={location.pathname}
+          className="flex-1 px-4 sm:px-6 py-6 w-full max-w-[1600px] settle"
+        >
+          {children}
+        </main>
         <StatusBar />
       </div>
     </div>
