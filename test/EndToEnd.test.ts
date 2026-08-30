@@ -6,6 +6,18 @@ import type { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signer
 
 const E = (n: string) => ethers.parseUnits(n, 18);
 
+/** Deploy a FeeRouter through the canonical factory and return it. */
+async function deployRouter(
+  factory: any,
+  asset: string,
+  owner: string,
+  splits: any[],
+) {
+  const addr = await factory.getFunction("deploy").staticCall(asset, owner, splits);
+  await factory.getFunction("deploy")(asset, owner, splits);
+  return ethers.getContractAt("FeeRouter", addr);
+}
+
 /**
  * Full-protocol regression: every user-facing flow, in the order a real
  * participant would hit them, against a real chain.
@@ -28,6 +40,7 @@ describe("End-to-end: every flow", () => {
 
   // Shared state, threaded through the story.
   let boards: any, registry: any, comments: any, social: any, promo: any;
+  let routerFactory: any;
   let base: any, projectToken: any, feeRouter: any, ido: any, curve: any;
   let deskId: bigint;
 
@@ -35,8 +48,10 @@ describe("End-to-end: every flow", () => {
     [deployer, creator, deskOwner, investor, trader] = await ethers.getSigners();
 
     boards = await (await ethers.getContractFactory("BoardRegistry")).deploy();
+    routerFactory = await (await ethers.getContractFactory("FeeRouterFactory")).deploy();
     registry = await (await ethers.getContractFactory("LaunchRegistry")).deploy(
       await boards.getAddress(),
+      await routerFactory.getAddress(),
     );
     comments = await (await ethers.getContractFactory("LaunchComments")).deploy();
     social = await (await ethers.getContractFactory("SocialGraph")).deploy();
@@ -60,7 +75,10 @@ describe("End-to-end: every flow", () => {
     projectToken = await (await ethers.getContractFactory("ProjectToken")).deploy(E("1000000"));
     await projectToken.transfer(creator.address, E("1000000"));
 
-    feeRouter = await (await ethers.getContractFactory("FeeRouter")).deploy(
+    // Deployed through the canonical factory: LaunchRegistry will not accept a
+    // board-scoped router it cannot attest the provenance of.
+    feeRouter = await deployRouter(
+      routerFactory,
       await base.getAddress(),
       creator.address,
       [
@@ -69,6 +87,9 @@ describe("End-to-end: every flow", () => {
         { recipient: deployer.address, bps: 2_000n, category: 6n, label: "Treasury" },
       ],
     );
+    // LaunchRegistry only trusts a board-scoped FeeRouter once its split is
+    // permanently frozen -- lock it here, before it's ever used to register.
+    await feeRouter.connect(creator).lock();
 
     const start = BigInt((await ethers.provider.getBlock("latest"))!.timestamp);
     // Deployed by the creator, so the creator owns the sale -- the wizard does
@@ -85,11 +106,13 @@ describe("End-to-end: every flow", () => {
 
   it("3. the desk's terms are enforced at registration", async () => {
     // A router paying the desk nothing must be refused.
-    const stingy = await (await ethers.getContractFactory("FeeRouter")).deploy(
+    const stingy = await deployRouter(
+      routerFactory,
       await base.getAddress(),
       creator.address,
       [{ recipient: creator.address, bps: 10_000n, category: 0n, label: "all" }],
     );
+    await stingy.connect(creator).lock();
     await expect(
       registry.connect(creator).register(
         await projectToken.getAddress(),

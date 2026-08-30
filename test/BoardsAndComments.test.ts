@@ -99,19 +99,31 @@ describe("LaunchRegistry + boards", () => {
   let creator: HardhatEthersSigner;
   let boardOwner: HardhatEthersSigner;
   let other: HardhatEthersSigner;
+  let routerFactory: any;
 
-  const deployRouter = async (splits: { recipient: string; bps: bigint; label: string }[]) =>
-    (await ethers.getContractFactory("FeeRouter")).deploy(
+  const deployRouter = async (splits: { recipient: string; bps: bigint; label: string }[]) => {
+    // Routers reach LaunchRegistry through the canonical factory, which is what
+    // makes their self-reported split worth reading at all, and are locked
+    // before use so that split can no longer be rewritten afterwards.
+    const args = [
       await asset.getAddress(),
       creator.address,
       splits.map((s) => ({ ...s, category: 0n })),
-    );
+    ] as const;
+    const addr = await routerFactory.getFunction("deploy").staticCall(...args);
+    await routerFactory.getFunction("deploy")(...args);
+    const router = await ethers.getContractAt("FeeRouter", addr);
+    await router.connect(creator).lock();
+    return router;
+  };
 
   beforeEach(async () => {
     [creator, boardOwner, other] = await ethers.getSigners();
     boards = await (await ethers.getContractFactory("BoardRegistry")).deploy();
+    routerFactory = await (await ethers.getContractFactory("FeeRouterFactory")).deploy();
     registry = await (await ethers.getContractFactory("LaunchRegistry")).deploy(
       await boards.getAddress(),
+      await routerFactory.getAddress(),
     );
     asset = await (await ethers.getContractFactory("ProjectToken")).deploy(
       ethers.parseUnits("1000", 18),

@@ -3,6 +3,7 @@ pragma solidity ^0.8.27;
 
 import "./BoardRegistry.sol";
 import "./FeeRouter.sol";
+import "./FeeRouterFactory.sol";
 
 /**
  * @title LaunchRegistry
@@ -73,10 +74,18 @@ contract LaunchRegistry {
     error UnknownBoard();
     error NotAllowedOnBoard();
     error BoardShareTooLow(uint256 required, uint256 provided);
+    error FeeRouterNotLocked();
+    error FeeRouterNotCanonical();
 
-    constructor(BoardRegistry boardRegistry) {
+    /// @notice Factory whose provenance attestation makes a router's reported
+    ///         split trustworthy. See `register` for why this is required.
+    FeeRouterFactory public immutable routerFactory;
+
+    constructor(BoardRegistry boardRegistry, FeeRouterFactory feeRouterFactory) {
         if (address(boardRegistry) == address(0)) revert ZeroAddress();
+        if (address(feeRouterFactory) == address(0)) revert ZeroAddress();
         boards = boardRegistry;
+        routerFactory = feeRouterFactory;
     }
 
     /**
@@ -109,6 +118,20 @@ contract LaunchRegistry {
 
             (address boardOwner, uint16 minBps) = boards.terms(boardId);
             if (minBps > 0) {
+                // `feeRouter` is supplied by the creator, who is exactly the party
+                // these terms constrain. Reading `bpsOf`/`locked` off an arbitrary
+                // address proves nothing -- a stub can report a locked 100% share
+                // for the board owner and route nothing -- so require the router to
+                // carry the canonical factory's provenance attestation first. Only
+                // then is what it reports about itself worth reading.
+                if (!routerFactory.isRouter(feeRouter)) revert FeeRouterNotCanonical();
+
+                // The split must also be permanently frozen before we trust it:
+                // otherwise a creator could satisfy `minBps` here and then call
+                // `setSplits` again afterwards (or never `lock()` at all) to strip
+                // the board's share once the launch is published under its name.
+                if (!FeeRouter(feeRouter).locked()) revert FeeRouterNotLocked();
+
                 uint256 routed = FeeRouter(feeRouter).bpsOf(boardOwner);
                 if (routed < minBps) revert BoardShareTooLow(minBps, routed);
             }
