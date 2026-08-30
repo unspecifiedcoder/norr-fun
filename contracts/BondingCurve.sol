@@ -77,6 +77,8 @@ contract BondingCurve is ReentrancyGuard {
     error ZeroAddress();
     error FeeTooHigh();
     error NotReady();
+    /// @dev A token delivered fewer units than were requested -- see `_pullExact`.
+    error UnsupportedToken();
 
     constructor(
         address _token,
@@ -145,6 +147,28 @@ contract BondingCurve is ReentrancyGuard {
         baseOut = gross - fee;
     }
 
+    /**
+     * @dev Pull exactly `amount` of `asset` from `from`, or revert.
+     *
+     * The curve prices a trade *before* the transfer, so a token that delivers
+     * less than it was asked for -- fee-on-transfer, or a rebase landing mid-
+     * transaction -- would leave the quote referring to base that never arrived
+     * and credit reserves that do not exist. Repeated, that drains the curve:
+     * later sellers are paid against a balance the contract does not hold, and
+     * the last ones out cannot be paid at all.
+     *
+     * `FeeRouter.deposit` solves the same problem by crediting whatever actually
+     * arrived, which it can do because it only ever divides what it holds. The
+     * curve cannot: its quote is already fixed by the time the tokens move. So
+     * it fails loudly here instead, which also states the constraint plainly --
+     * curves assume standard ERC20 behaviour on both sides of the pair.
+     */
+    function _pullExact(IERC20 asset, address from, uint256 amount) private {
+        uint256 balanceBefore = asset.balanceOf(address(this));
+        asset.safeTransferFrom(from, address(this), amount);
+        if (asset.balanceOf(address(this)) - balanceBefore != amount) revert UnsupportedToken();
+    }
+
     function buy(uint256 baseIn, uint256 minTokensOut) external nonReentrant returns (uint256 tokensOut) {
         if (graduated) revert AlreadyGraduated();
         if (baseIn == 0) revert ZeroAmount();
@@ -155,7 +179,7 @@ contract BondingCurve is ReentrancyGuard {
         if (tokensOut < minTokensOut) revert SlippageExceeded(tokensOut, minTokensOut);
         if (tokenReserve - tokensOut < MIN_RESERVE) revert InsufficientReserve();
 
-        base.safeTransferFrom(msg.sender, address(this), baseIn);
+        _pullExact(base, msg.sender, baseIn);
 
         tokenReserve -= tokensOut;
         baseReserve += baseIn - fee;
@@ -178,7 +202,7 @@ contract BondingCurve is ReentrancyGuard {
         if (baseOut == 0) revert ZeroAmount();
         if (baseOut < minBaseOut) revert SlippageExceeded(baseOut, minBaseOut);
 
-        token.safeTransferFrom(msg.sender, address(this), tokensIn);
+        _pullExact(token, msg.sender, tokensIn);
 
         tokenReserve += tokensIn;
         baseReserve -= (baseOut + fee);

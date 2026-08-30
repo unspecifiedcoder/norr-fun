@@ -47,6 +47,8 @@ contract LiquidityPair is ReentrancyGuard {
     error InsufficientInput();
     error InsufficientOutput();
     error SlippageExceeded(uint256 got, uint256 wanted);
+    /// @dev A token delivered fewer units than were requested -- see `_pullExact`.
+    error UnsupportedToken();
 
     constructor(address _token0, address _token1) {
         if (_token0 == address(0) || _token1 == address(0)) revert ZeroAddress();
@@ -78,6 +80,24 @@ contract LiquidityPair is ReentrancyGuard {
      *      scarcer side, so depositing off-ratio donates the excess rather
      *      than moving the price.
      */
+    /**
+     * @dev Pull exactly `amount` of `asset` from `from`, or revert.
+     *
+     * Reserves are tracked in storage rather than read from balances, so a token
+     * that delivers less than it was asked for -- fee-on-transfer, or a rebase --
+     * would have the shortfall credited to reserves anyway. The pool would then
+     * quote and pay out against liquidity it does not hold, and the last LP to
+     * withdraw absorbs the whole accumulated gap.
+     *
+     * Failing here states the constraint plainly: pairs assume standard ERC20
+     * behaviour on both sides.
+     */
+    function _pullExact(IERC20 asset, address from, uint256 amount) private {
+        uint256 balanceBefore = asset.balanceOf(address(this));
+        asset.safeTransferFrom(from, address(this), amount);
+        if (asset.balanceOf(address(this)) - balanceBefore != amount) revert UnsupportedToken();
+    }
+
     function addLiquidity(uint256 amount0, uint256 amount1, address to)
         external
         nonReentrant
@@ -86,8 +106,8 @@ contract LiquidityPair is ReentrancyGuard {
         if (to == address(0)) revert ZeroAddress();
         if (amount0 == 0 || amount1 == 0) revert InsufficientInput();
 
-        token0.safeTransferFrom(msg.sender, address(this), amount0);
-        token1.safeTransferFrom(msg.sender, address(this), amount1);
+        _pullExact(token0, msg.sender, amount0);
+        _pullExact(token1, msg.sender, amount1);
 
         if (totalSupply == 0) {
             shares = _sqrt(amount0 * amount1);
@@ -154,12 +174,12 @@ contract LiquidityPair is ReentrancyGuard {
         if (amountOut < minOut) revert SlippageExceeded(amountOut, minOut);
 
         if (zeroForOne) {
-            token0.safeTransferFrom(msg.sender, address(this), amountIn);
+            _pullExact(token0, msg.sender, amountIn);
             reserve0 += amountIn;
             reserve1 -= amountOut;
             token1.safeTransfer(to, amountOut);
         } else {
-            token1.safeTransferFrom(msg.sender, address(this), amountIn);
+            _pullExact(token1, msg.sender, amountIn);
             reserve1 += amountIn;
             reserve0 -= amountOut;
             token0.safeTransfer(to, amountOut);
