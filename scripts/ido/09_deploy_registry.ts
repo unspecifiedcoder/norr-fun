@@ -38,9 +38,16 @@ async function main() {
   await (await promotion.addTier("Headline", ethers.parseEther("0.2"), 604_800)).wait();
   console.log(`Promotion:      ${promotionAddress} (2 paid tiers)`);
 
+  const routerFactory = await (
+    await ethers.getContractFactory("FeeRouterFactory")
+  ).deploy();
+  await routerFactory.waitForDeployment();
+  const routerFactoryAddress = await routerFactory.getAddress();
+  console.log(`FeeRouterFactory: ${routerFactoryAddress}`);
+
   const registry = await (
     await ethers.getContractFactory("LaunchRegistry")
-  ).deploy(boardsAddress);
+  ).deploy(boardsAddress, routerFactoryAddress);
   await registry.waitForDeployment();
   const address = await registry.getAddress();
   console.log(`LaunchRegistry: ${address}`);
