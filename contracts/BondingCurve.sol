@@ -196,6 +196,11 @@ contract BondingCurve is ReentrancyGuard {
      * @notice Lock the curve once the target is met and release reserves.
      * @dev Permissionless: the condition is objective, and requiring an owner
      *      to call it would let them stall a launch that has already qualified.
+     *      Because anyone may call this, the released reserves are protected by
+     *      an on-chain check rather than a caller-supplied bound: a caller-passed
+     *      minimum would be worthless here, since the value at stake belongs to
+     *      `graduationRecipient` and an attacker calling this would simply pass
+     *      zero.
      */
     function graduate() external nonReentrant {
         if (graduated) revert AlreadyGraduated();
@@ -207,22 +212,37 @@ contract BondingCurve is ReentrancyGuard {
         baseReserve = 0;
         tokenReserve = 0;
 
+        bool seeded;
         if (address(pairFactory) != address(0) && releasedBase > 0 && remainingTokens > 0) {
-            // Seed a live pool at the curve's final price, and hand the LP
-            // shares to the recipient so the position stays theirs.
             address pair = pairFactory.ensurePair(address(token), address(base));
-            graduationPair = pair;
 
-            base.forceApprove(pair, releasedBase);
-            token.forceApprove(pair, remainingTokens);
+            // Only seed a pool that is still empty, so it is seeded at *our*
+            // final price. `ensurePair` will happily return a pool a third party
+            // already created and funded at an arbitrary ratio; depositing into
+            // one credits `LiquidityPair.addLiquidity` on its scarcer side only
+            // (`min(a0*supply/r0, a1*supply/r1)`) and silently gifts the
+            // difference to whoever seeded it. Nothing stops an attacker from
+            // front-running graduation to create exactly that pool, so we refuse
+            // to deposit into a non-empty one and pay the recipient directly
+            // instead. Pre-seeding can therefore cost a launch its automatic LP
+            // position, but it can never divert the reserves themselves.
+            if (LiquidityPair(pair).totalSupply() == 0) {
+                graduationPair = pair;
 
-            (uint256 a0, uint256 a1) = address(token) < address(base)
-                ? (remainingTokens, releasedBase)
-                : (releasedBase, remainingTokens);
+                base.forceApprove(pair, releasedBase);
+                token.forceApprove(pair, remainingTokens);
 
-            uint256 shares = LiquidityPair(pair).addLiquidity(a0, a1, graduationRecipient);
-            emit PoolSeeded(pair, releasedBase, remainingTokens, shares);
-        } else {
+                (uint256 a0, uint256 a1) = address(token) < address(base)
+                    ? (remainingTokens, releasedBase)
+                    : (releasedBase, remainingTokens);
+
+                uint256 shares = LiquidityPair(pair).addLiquidity(a0, a1, graduationRecipient);
+                emit PoolSeeded(pair, releasedBase, remainingTokens, shares);
+                seeded = true;
+            }
+        }
+
+        if (!seeded) {
             if (releasedBase > 0) base.safeTransfer(graduationRecipient, releasedBase);
             if (remainingTokens > 0) token.safeTransfer(graduationRecipient, remainingTokens);
         }
