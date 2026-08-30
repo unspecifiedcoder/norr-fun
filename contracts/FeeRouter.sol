@@ -7,13 +7,24 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title FeeRouter
- * @notice Programmable, multi-recipient routing of IDO proceeds.
+ * @notice Programmable, multi-recipient routing of assets this contract holds.
  *
- * An IDO raises funds into a single vault today, which leaves every downstream
- * split (creator revenue, distribution partners, community rewards, buybacks,
- * liquidity, treasury) to off-chain trust. FeeRouter makes that split explicit
- * and enforceable on-chain: a launch declares who earns what, in basis points,
- * and recipients pull their own share.
+ * A launch declares who earns what, in basis points, and recipients pull their
+ * own share, so any split this contract routes is explicit and enforceable
+ * on-chain rather than left to off-chain trust.
+ *
+ * What that does and does not cover, stated precisely because the distinction
+ * is easy to lose:
+ *  - **Trading fees are enforced.** `BondingCurve` holds an immutable reference
+ *    to its router and calls `deposit` on every buy and sell, so those proceeds
+ *    provably reach this split.
+ *  - **IDO proceeds are NOT.** `IDO` has no reference to a router: contributions
+ *    are sealed transfers to its `vaultEOA` and never pass through this
+ *    contract, so nothing on-chain compels them here. A split registered
+ *    against a raise therefore constrains its trading fees, and describes
+ *    intent only for the sale itself. Routing sale proceeds through code, or
+ *    saying plainly in the UI that this leg rests on operator custody, is
+ *    tracked separately.
  *
  * Design notes:
  *  - Splits are basis points and MUST total exactly 10_000. Rejecting anything
