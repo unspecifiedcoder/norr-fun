@@ -185,5 +185,88 @@ describe("PairFactory and graduation into a pool", () => {
       await pool.connect(creator).swap(E("1"), 0, !tokenIsZero, creator.address);
       expect(await token.balanceOf(creator.address)).to.equal(out);
     });
+
+    /**
+     * Regression for a Critical finding: graduate() used to deposit into
+     * whatever pool `ensurePair` returned. An attacker who pre-seeds the
+     * destination pair at a wildly skewed ratio (before graduation ever runs)
+     * caused the curve's real, released reserves to be credited almost entirely
+     * on the pool's scarce side -- the graduation recipient got dust LP for a
+     * full-value deposit, and the attacker could withdraw the difference.
+     *
+     * graduate() is permissionless, so this cannot be defended with a
+     * caller-supplied minimum (an attacker would pass zero). The curve instead
+     * refuses to deposit into a non-empty pool and pays the recipient directly,
+     * so pre-seeding can cost the launch its automatic LP position but can never
+     * divert the reserves.
+     */
+    it("pays the recipient directly rather than seeding a pair an attacker pre-seeded", async () => {
+      const curveSupply = E("800000");
+      curve = await (await ethers.getContractFactory("BondingCurve")).deploy(
+        await token.getAddress(),
+        await base.getAddress(),
+        await fees.getAddress(),
+        E("30"),
+        curveSupply,
+        E("100"),
+        100,
+        vault.address,
+        await factory.getAddress(),
+      );
+      await token.transfer(await curve.getAddress(), curveSupply);
+      await base.mint(trader.address, E("500"));
+      await base.connect(trader).approve(await curve.getAddress(), ethers.MaxUint256);
+      await curve.connect(trader).buy(E("120"), 0);
+
+      const releasedBase = await curve.baseReserve();
+      const remainingTokens = await curve.tokenReserve();
+
+      // Attacker pre-creates and seeds the exact pair BondingCurve will graduate
+      // into, at a ratio wildly different from the curve's own final price.
+      const attacker = creator; // reuse an existing signer as the attacker
+      const pairAddr = await factory.ensurePair.staticCall(
+        await token.getAddress(),
+        await base.getAddress(),
+      );
+      await factory.ensurePair(await token.getAddress(), await base.getAddress());
+      const pair = await ethers.getContractAt("LiquidityPair", pairAddr);
+
+      const tokenIsZero =
+        (await pair.token0()).toLowerCase() === (await token.getAddress()).toLowerCase();
+      const skewedToken = E("1000"); // attacker's side of the skew
+      const skewedBase = E("1000000000"); // wildly larger than the curve's real base
+
+      await token.transfer(attacker.address, skewedToken);
+      await base.mint(attacker.address, skewedBase);
+      await token.connect(attacker).approve(pairAddr, ethers.MaxUint256);
+      await base.connect(attacker).approve(pairAddr, ethers.MaxUint256);
+
+      const [seedA0, seedA1] = tokenIsZero
+        ? [skewedToken, skewedBase]
+        : [skewedBase, skewedToken];
+      await pair.connect(attacker).addLiquidity(seedA0, seedA1, attacker.address);
+
+      const attackerSharesBefore = await pair.balanceOf(attacker.address);
+      const poolBaseBefore = await base.balanceOf(pairAddr);
+      const poolTokenBefore = await token.balanceOf(pairAddr);
+
+      // The attacker triggers graduation themselves, passing nothing they could
+      // weaken -- there is no caller-supplied bound to zero out any more.
+      await curve.connect(attacker).graduate();
+
+      // The reserves went to the recipient whole, not into the attacker's pool.
+      expect(await base.balanceOf(vault.address)).to.equal(releasedBase);
+      expect(await token.balanceOf(vault.address)).to.equal(remainingTokens);
+
+      // The attacker's pool is untouched: no deposit landed in it, and their LP
+      // position is worth exactly what it was before.
+      expect(await base.balanceOf(pairAddr)).to.equal(poolBaseBefore);
+      expect(await token.balanceOf(pairAddr)).to.equal(poolTokenBefore);
+      expect(await pair.balanceOf(attacker.address)).to.equal(attackerSharesBefore);
+
+      // And the curve did not record the attacker's pool as its graduation pair.
+      expect(await curve.graduationPair()).to.equal(ethers.ZeroAddress);
+      expect(await curve.graduated()).to.equal(true);
+    });
   });
 });

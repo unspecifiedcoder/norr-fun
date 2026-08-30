@@ -77,6 +77,8 @@ contract BondingCurve is ReentrancyGuard {
     error ZeroAddress();
     error FeeTooHigh();
     error NotReady();
+    /// @dev A token delivered fewer units than were requested -- see `_pullExact`.
+    error UnsupportedToken();
 
     constructor(
         address _token,
@@ -145,6 +147,28 @@ contract BondingCurve is ReentrancyGuard {
         baseOut = gross - fee;
     }
 
+    /**
+     * @dev Pull exactly `amount` of `asset` from `from`, or revert.
+     *
+     * The curve prices a trade *before* the transfer, so a token that delivers
+     * less than it was asked for -- fee-on-transfer, or a rebase landing mid-
+     * transaction -- would leave the quote referring to base that never arrived
+     * and credit reserves that do not exist. Repeated, that drains the curve:
+     * later sellers are paid against a balance the contract does not hold, and
+     * the last ones out cannot be paid at all.
+     *
+     * `FeeRouter.deposit` solves the same problem by crediting whatever actually
+     * arrived, which it can do because it only ever divides what it holds. The
+     * curve cannot: its quote is already fixed by the time the tokens move. So
+     * it fails loudly here instead, which also states the constraint plainly --
+     * curves assume standard ERC20 behaviour on both sides of the pair.
+     */
+    function _pullExact(IERC20 asset, address from, uint256 amount) private {
+        uint256 balanceBefore = asset.balanceOf(address(this));
+        asset.safeTransferFrom(from, address(this), amount);
+        if (asset.balanceOf(address(this)) - balanceBefore != amount) revert UnsupportedToken();
+    }
+
     function buy(uint256 baseIn, uint256 minTokensOut) external nonReentrant returns (uint256 tokensOut) {
         if (graduated) revert AlreadyGraduated();
         if (baseIn == 0) revert ZeroAmount();
@@ -155,7 +179,7 @@ contract BondingCurve is ReentrancyGuard {
         if (tokensOut < minTokensOut) revert SlippageExceeded(tokensOut, minTokensOut);
         if (tokenReserve - tokensOut < MIN_RESERVE) revert InsufficientReserve();
 
-        base.safeTransferFrom(msg.sender, address(this), baseIn);
+        _pullExact(base, msg.sender, baseIn);
 
         tokenReserve -= tokensOut;
         baseReserve += baseIn - fee;
@@ -178,7 +202,7 @@ contract BondingCurve is ReentrancyGuard {
         if (baseOut == 0) revert ZeroAmount();
         if (baseOut < minBaseOut) revert SlippageExceeded(baseOut, minBaseOut);
 
-        token.safeTransferFrom(msg.sender, address(this), tokensIn);
+        _pullExact(token, msg.sender, tokensIn);
 
         tokenReserve += tokensIn;
         baseReserve -= (baseOut + fee);
@@ -196,6 +220,11 @@ contract BondingCurve is ReentrancyGuard {
      * @notice Lock the curve once the target is met and release reserves.
      * @dev Permissionless: the condition is objective, and requiring an owner
      *      to call it would let them stall a launch that has already qualified.
+     *      Because anyone may call this, the released reserves are protected by
+     *      an on-chain check rather than a caller-supplied bound: a caller-passed
+     *      minimum would be worthless here, since the value at stake belongs to
+     *      `graduationRecipient` and an attacker calling this would simply pass
+     *      zero.
      */
     function graduate() external nonReentrant {
         if (graduated) revert AlreadyGraduated();
@@ -207,22 +236,37 @@ contract BondingCurve is ReentrancyGuard {
         baseReserve = 0;
         tokenReserve = 0;
 
+        bool seeded;
         if (address(pairFactory) != address(0) && releasedBase > 0 && remainingTokens > 0) {
-            // Seed a live pool at the curve's final price, and hand the LP
-            // shares to the recipient so the position stays theirs.
             address pair = pairFactory.ensurePair(address(token), address(base));
-            graduationPair = pair;
 
-            base.forceApprove(pair, releasedBase);
-            token.forceApprove(pair, remainingTokens);
+            // Only seed a pool that is still empty, so it is seeded at *our*
+            // final price. `ensurePair` will happily return a pool a third party
+            // already created and funded at an arbitrary ratio; depositing into
+            // one credits `LiquidityPair.addLiquidity` on its scarcer side only
+            // (`min(a0*supply/r0, a1*supply/r1)`) and silently gifts the
+            // difference to whoever seeded it. Nothing stops an attacker from
+            // front-running graduation to create exactly that pool, so we refuse
+            // to deposit into a non-empty one and pay the recipient directly
+            // instead. Pre-seeding can therefore cost a launch its automatic LP
+            // position, but it can never divert the reserves themselves.
+            if (LiquidityPair(pair).totalSupply() == 0) {
+                graduationPair = pair;
 
-            (uint256 a0, uint256 a1) = address(token) < address(base)
-                ? (remainingTokens, releasedBase)
-                : (releasedBase, remainingTokens);
+                base.forceApprove(pair, releasedBase);
+                token.forceApprove(pair, remainingTokens);
 
-            uint256 shares = LiquidityPair(pair).addLiquidity(a0, a1, graduationRecipient);
-            emit PoolSeeded(pair, releasedBase, remainingTokens, shares);
-        } else {
+                (uint256 a0, uint256 a1) = address(token) < address(base)
+                    ? (remainingTokens, releasedBase)
+                    : (releasedBase, remainingTokens);
+
+                uint256 shares = LiquidityPair(pair).addLiquidity(a0, a1, graduationRecipient);
+                emit PoolSeeded(pair, releasedBase, remainingTokens, shares);
+                seeded = true;
+            }
+        }
+
+        if (!seeded) {
             if (releasedBase > 0) base.safeTransfer(graduationRecipient, releasedBase);
             if (remainingTokens > 0) token.safeTransfer(graduationRecipient, remainingTokens);
         }

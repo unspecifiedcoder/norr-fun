@@ -102,7 +102,13 @@ contract Registrar {
         }
 
         // check if the user is already registered
-        if (isRegistered[registrationHash] && isUserRegistered(account)) {
+        // NOTE: this must be OR, not AND -- the invariant is "you cannot register twice",
+        // which only requires the account to already be registered. Requiring the specific
+        // registrationHash to also repeat would let an already-registered account silently
+        // re-register (and overwrite its public key) with any fresh proof/hash pair.
+        // The hash arm is kept as well so a registration hash can never be reused across
+        // two different accounts.
+        if (isRegistered[registrationHash] || isUserRegistered(account)) {
             revert UserAlreadyRegistered();
         }
 
